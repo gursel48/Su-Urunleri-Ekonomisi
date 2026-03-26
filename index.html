@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Sınav Portalı</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f4f8;
+      margin: 0;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      padding-bottom: 80px;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 860px;
+    }
+
+    .menu-container, .quiz-container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      width: 100%;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .menu-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: left;
+      cursor: pointer;
+      background: linear-gradient(135deg, #007bff, #0056b3);
+      color: white;
+    }
+
+    .menu-btn.locked {
+      background: linear-gradient(135deg, #6c757d, #495057);
+      cursor: not-allowed;
+      order: 999;
+      opacity: 0.85;
+    }
+
+    .quiz-container {
+      display: none;
+      position: relative;
+      padding-top: 85px;
+      min-height: 100vh;
+    }
+
+    .progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 6px;
+      background: #28a745;
+      transition: 0.3s;
+      width: 0%;
+      border-radius: 14px 14px 0 0;
+    }
+
+    .main-menu-btn {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: calc(1rem + 4pt);
+      color: #333;
+      padding: 5px 0;
+    }
+
+    .header-info {
+      position: absolute;
+      top: 15px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding-right: 110px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 0;
+      flex: 1;
+      flex-wrap: wrap;
+    }
+
+    .header-subject {
+      font-weight: normal;
+      color: #777;
+      font-size: 0.95rem;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .retry-badge {
+      display: none;
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffe69c;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    .question-title {
+      margin-top: 0;
+      margin-bottom: 16px;
+      line-height: 1.45;
+      font-size: 1.2rem;
+      color: #222;
+    }
+
+    .option-btn {
+      width: 100%;
+      padding: 16px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      border: 2px solid #e9ecef;
+      background: #f8f9fa;
+      text-align: left;
+      cursor: pointer;
+      font-size: 1.05rem;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+      position: relative;
+    }
+
+    .option-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+
+    .option-btn:disabled {
+      cursor: default;
+    }
+
+    .option-btn.correct {
+      background: #d4edda !important;
+      border-color: #28a745 !important;
+      color: #155724 !important;
+      font-weight: bold;
+    }
+
+    .option-btn.wrong {
+      background: #f8d7da !important;
+      border-color: #dc3545 !important;
+      color: #721c24 !important;
+      font-weight: bold;
+    }
+
+    .tick {
+      display: inline-block;
+      margin-left: 10px;
+      color: #1f9d45;
+      font-weight: bold;
+      opacity: 0;
+      transform: scale(0.4);
+    }
+
+    .tick.show {
+      animation: popTick 0.45s ease forwards;
+    }
+
+    @keyframes popTick {
+      0%   { opacity: 0; transform: scale(0.4); }
+      60%  { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .explanation {
+      display: none;
+      margin-top: 20px;
+      padding: 15px;
+      background: #eaf2f8;
+      border-left: 5px solid #2980b9;
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+
+    .nav-controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 25px;
+    }
+
+    .nav-btn {
+      flex: 1;
+      padding: 18px;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .next-btn { background: #007bff; }
+    .prev-btn {
+      background: #e9ecef;
+      color: #dc3545 !important;
+      border: 1px solid #ddd;
+    }
+
+    .quiz-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+      color: #666;
+      font-weight: bold;
+      font-size: 0.9rem;
+      flex-wrap: wrap;
+    }
+
+    .disclaimer-box {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fdfdfd;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      color: #888;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    .disclaimer-title {
+      display: block;
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+    }
+
+    .source-tag {
+      position: fixed;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.05);
+      color: #777;
+      padding: 5px 10px;
+      border-radius: 10px;
+      font-size: 0.72rem;
+      font-weight: bold;
+      z-index: 9999;
+    }
+
+    .reset-set-btn {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: #ffc107;
+      border: none;
+      padding: 8px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      cursor: pointer;
+      z-index: 5;
+    }
+
+    @media (max-width: 480px) {
+      .quiz-container {
+        padding-top: 110px;
+      }
+
+      .header-info {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        padding-right: 104px;
+        align-items: flex-start;
+      }
+
+      .header-left {
+        display: block;
+        padding-right: 6px;
+      }
+
+      .main-menu-btn {
+        display: block;
+        font-size: 0.95rem;
+        padding: 0;
+        margin-bottom: 6px;
+      }
+
+      .header-subject {
+        display: block;
+        margin: 0;
+        font-size: 0.82rem;
+        line-height: 1.3;
+        max-width: 100%;
+      }
+
+      .question-title {
+        font-size: 1.05rem;
+      }
+
+      .option-btn {
+        font-size: 1rem;
+        padding: 14px;
+      }
+
+      .reset-set-btn {
+        top: 12px;
+        right: 12px;
+        font-size: 0.75rem;
+        padding: 7px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="menuContainer" class="menu-container">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px;">
+      <h1 id="mainTitle" style="margin:0;">Yükleniyor...</h1>
+      <button onclick="clearAllStatistics()" style="background:#dc3545; color:white; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; font-size:0.75rem;">
+        Verileri Sıfırla
+      </button>
+    </div>
+
+    <div id="menuGrid" class="menu-grid"></div>
+
+    <div class="disclaimer-box">
+      <span class="disclaimer-title">⚠️ Önemli Uyarı</span>
+      Bu sistemde yer alan içerikler yalnızca eğitim amaçlıdır. İçeriklerin kullanımından doğabilecek doğrudan veya dolaylı hiçbir sorumluluk kabul edilmez. Tüm kullanım sorumluluğu kullanıcıya aittir.
+    </div>
+  </div>
+
+  <div id="quizContainer" class="quiz-container">
+    <div class="progress-bar" id="progressBar"></div>
+
+    <div class="header-info">
+      <div class="header-left">
+        <button onclick="showMenu()" class="main-menu-btn">☰ Ana Menü</button>
+        <span id="headerSubject" class="header-subject"></span>
+      </div>
+    </div>
+
+    <button onclick="resetCurrentSet()" class="reset-set-btn">Seti Sıfırla</button>
+
+    <div id="retryBadge" class="retry-badge">Yalnış cevaplanan soru</div>
+    <h2 id="questionText" class="question-title">...</h2>
+
+    <div id="optionsArea"></div>
+
+    <div class="quiz-footer">
+      <div id="footerLeft">Kalan: 0</div>
+      <div id="footerRight">0 / 0</div>
+    </div>
+
+    <div id="explanationArea" class="explanation"></div>
+
+    <div class="nav-controls">
+      <button id="prevBtn" class="nav-btn prev-btn" onclick="goBack()" style="visibility:hidden;">❮ Önceki</button>
+      <button id="nextBtn" class="nav-btn next-btn" onclick="goForward()" style="visibility:hidden;">Yeni Soru ❯</button>
+    </div>
+  </div>
+</div>
+
+<div class="source-tag" id="sourceTag">Kaynak: ...</div>
+
+<script>
+  const CURRENT_SUBJECT = "Su Ürünleri Ekononisi";
+  const SOURCE_TEXT = "Kaynak: geminigysmer";
+  const QUESTIONS_PER_SET = 30;
+
+  const questions = [
+    {
+        q: "Su ürünleri sektörünün temel değer zinciri (supply chain) içinde aşağıdakilerden hangisi doğrudan yer almaz?",
+        o: [
+            "Soğuk zincir lojistiği ve pazarlama",
+            "Tüketici kredi finansmanı",
+            "Ağ ve kafes donanım teknolojileri",
+            "Yem sanayisi"
+        ],
+        c: 1,
+        e: "Açıklama: Sektörün değer zinciri; yem sanayisi, ağ ve kafes donanım teknolojileri, işleme ve paketleme sanayisi, soğuk zincir lojistiği ve pazarlama organizasyonları olarak belirtilmiştir. Tüketici kredi finansmanı bu üretim ve tedarik değer zincirinde geçmemektedir."
+    },
+    {
+        q: "FAO verilerine göre dünya su ürünleri üretiminde yaklaşık 90-95 milyon ton seviyesinde doyum noktasına ulaşan ve artık artış göstermeyen üretim alanı hangisidir?",
+        o: [
+            "Deniz Avcılığı",
+            "Deniz ve İç Su Yetiştiriciliği",
+            "Su Yosunu (Alg) Üretimi",
+            "Konserve Sanayisi"
+        ],
+        c: 0,
+        e: "Açıklama: Küresel deniz avcılığı stokları Maksimum Sürdürülebilir Verim (MSY) sınırlarına ulaştığı ve bazı bölgelerde bu sınır aşıldığı için, avcılık yoluyla elde edilen miktar 1990'ların sonundan beri 90-95 milyon ton bandında sabit kalmıştır. Büyüme tamamen yetiştiricilikten gelmektedir."
+    },
+    {
+        q: "Türkiye'nin 8.333 km kıyı şeridine ve geniş iç su kaynaklarına sahip olması, su ürünleri ekonomisinde hangi temel rekabet avantajını yaratmaktadır?",
+        o: [
+            "Döviz kurlarından etkilenmeme avantajı",
+            "Doğal kaynak ve lojistik (pazara yakınlık) avantajı",
+            "İşgücü maliyetlerinin sıfırlanması",
+            "Mutlak monopol gücü"
+        ],
+        c: 1,
+        e: "Açıklama: Geniş kıyı şeridi ve su kaynakları üretim kapasitesini (doğal kaynak) artırırken, özellikle Avrupa ve Orta Doğu pazarlarına olan coğrafi yakınlık, taze soğutulmuş ürünlerin kısa sürede pazara ulaştırılmasını (lojistik avantaj) sağlamaktadır."
+    },
+    {
+        q: "Türk balıkçılık ekonomisinin sürdürülebilirliği ve balık unu/yağı sanayisinin hammadde tedariki açısından en kritik öneme sahip pelajik tür aşağıdakilerden hangisidir?",
+        o: [
+            "Palamut",
+            "Kalkan",
+            "Lüfer",
+            "Hamsi"
+        ],
+        c: 3,
+        e: "Açıklama: Türkiye deniz avcılığının miktar olarak %60-70'ini tek başına hamsi oluşturmaktadır. Hamsi hem doğrudan insan tüketiminde hem de su ürünleri yetiştiriciliğinin en önemli girdisi olan balık unu ve balık yağı fabrikalarının ana hammaddesi olarak sektörün belkemiğidir."
+    },
+    {
+        q: "Su ürünleri ekonomisinde \"Maksimum Sürdürülebilir Verim\" (MSY) kavramı neyi ifade etmektedir?",
+        o: [
+            "Yetiştiricilikte en kısa sürede hasat yapmayı",
+            "Piyasada balık fiyatlarının en yüksek olduğu dönemi",
+            "Balık popülasyonunun kendini yenileme yeteneğini bozmadan (stokları tüketmeden) yıllık olarak avlanabilecek azami miktarı",
+            "Filodaki en büyük teknenin avlama kapasitesini"
+        ],
+        c: 2,
+        e: "Açıklama: MSY (Maximum Sustainable Yield), biyoekonomik bir modeldir. Bir balık stokundan, o stokun uzun vadeli üreme ve büyüme dinamiklerine zarar vermeden, sonsuza dek her yıl çekilebilecek en yüksek av miktarını tanımlar. MSY aşıldığında stoklarda çöküş (aşırı avlanma) başlar."
+    },
+    {
+        q: "Balıkçılık yönetiminde \"Müştereklerin Trajedisi\" (Tragedy of the Commons) teorisi su ürünleri sektörü için hangi durumu açıklar?",
+        o: [
+            "Balıkçıların kendi aralarında kooperatif kurmasını",
+            "Tüketicilerin balık yeme alışkanlıklarını terk etmesini",
+            "Balık fiyatlarının devlet tarafından sabitlenmesini",
+            "Mülkiyet hakkı olmayan açık deniz kaynaklarının, her bireyin kendi kısa vadeli kârını maksimize etme güdüsüyle aşırı sömürülüp yok edilmesini"
+        ],
+        c: 3,
+        e: "Açıklama: Garrett Hardin tarafından ortaya atılan bu kavram; denizler gibi herkesin kullanımına açık olan (ortak mülkiyet) kaynaklarda, bireysel kâr güdüsünün toplumsal ve ekolojik yıkıma (aşırı avlanma ve stokların tükenmesi) yol açtığını ifade eder."
+    },
+    {
+        q: "Türkiye'nin dış ticaret dengesi (ihracat ve ithalat) açısından su ürünleri sektörünün genel konumu aşağıdakilerden hangisidir?",
+        o: [
+            "Sadece iç pazara yönelik üretici",
+            "Net İhracatçı",
+            "Dış ticarete kapalı",
+            "Net İthalatçı"
+        ],
+        c: 1,
+        e: "Açıklama: [Türkiye su ürünleri sektörü, ithal ettiğinden çok daha fazlasını ihraç eden, cari açığın kapatılmasına pozitif katkı sağlayan ve istikrarlı döviz girdisi yaratan \"Net İhracatçı\" konumunda stratejik bir tarım-gıda sektörüdür.]"
+    },
+    {
+        q: "Su ürünleri yetiştiriciliğinde işletmelerin kârlılığını belirleyen en önemli biyolojik-ekonomik metrik olan FCR (Yem Dönüşüm Oranı) ne anlama gelir?",
+        o: [
+            "Balığın günlük tükettiği su miktarını",
+            "Tesisin yıllık elektrik tüketimini",
+            "Yemin içindeki protein yüzdesini",
+            "Balıkta 1 kg canlı ağırlık artışı sağlamak için tüketilmesi gereken yem miktarını"
+        ],
+        c: 3,
+        e: "Açıklama: FCR (Feed Conversion Ratio), verilen yem miktarının kazanılan canlı ağırlığa bölünmesiyle bulunur. Örneğin FCR 1.2 ise, 1 kg balık eti elde etmek için 1.2 kg yem harcanmış demektir. FCR düştükçe birim maliyet düşer, işletmenin verimliliği ve kârlılığı artar."
+    },
+    {
+        q: "Su ürünleri yetiştiriciliğinde toplam işletme maliyetlerinin en büyük kısmını (%55 - %65) hangi gider kalemi oluşturmaktadır?",
+        o: [
+            "Yavru balık alımı",
+            "Yem maliyetleri",
+            "Enerji ve akaryakıt",
+            "İşçilik ve personel giderleri"
+        ],
+        c: 1,
+        e: "Açıklama: Kafes veya havuz sistemlerinde en baskın değişken maliyet yemdir. Yem rasyonlarının içeriğindeki balık unu, balık yağı ve soya gibi hammaddelerin büyük oranda ithalata dayalı olması, bu kalemi işletmelerin finansal yapısında en riskli faktör haline getirir."
+    },
+    {
+        q: "İşletmelerin hem hammaddelerini (yem/yavru) döviz cinsinden alıp hem de ürettikleri ürünü yurtdışına dövizle satarak kur dalgalanmalarından kaynaklı finansal riski kendi içlerinde dengelemelerine ne ad verilir?",
+        o: [
+            "Doğal Hedge (Doğal Korunma)",
+            "İthal İkamesi",
+            "Arbitraj",
+            "Çapraz Kur Sabitlemesi"
+        ],
+        c: 0,
+        e: "Açıklama: İhracatçı su ürünleri firmaları, döviz kurlarındaki artıştan dolayı yem alırken artan maliyetlerini, ürünlerini Euro/Dolar bazında sattıkları için elde ettikleri yüksek döviz gelirleriyle otomatik olarak karşılarlar. Buna finansal literatürde Doğal Hedge denir."
+    },
+    {
+        q: "Türkiye, Avrupa pazarında hangi iki balık türünün üretiminde ve ihracatında açık ara pazar lideri konumundadır?",
+        o: [
+            "Orkinos ve Kılıç Balığı",
+            "Somon ve Uskumru",
+            "Levrek ve Çipura",
+            "Karides ve Kalamar"
+        ],
+        c: 2,
+        e: "Açıklama: Türkiye, özellikle Ege Bölgesi'ndeki açık deniz kafes sistemlerinde yetiştirdiği Levrek (Dicentrarchus labrax) ve Çipura (Sparus aurata) ile Yunanistan ve İspanya'yı geride bırakarak Akdeniz havzasının ve Avrupa'nın en büyük üreticisi konumundadır."
+    },
+    {
+        q: "Küresel su ürünleri pazarında \"Türk Somonu\" adıyla markalaşan ve ihracat rekorları kıran ürün aslında biyolojik olarak hangi türdür?",
+        o: [
+            "Denizde (Karadeniz) büyütülmüş Gökkuşağı Alabalığı",
+            "Kırmızı Benekli Dere Alabalığı",
+            "Pembe Somon",
+            "Atlantik Somonu"
+        ],
+        c: 0,
+        e: "Açıklama: İç sularda (baraj ve göllerde) yumurtadan çıkarılıp belirli bir ağırlığa ulaştırılan Gökkuşağı Alabalıklarının, Karadeniz'deki deniz kafeslerine aktarılarak somon boyutlarına (3-4 kg) ulaştırılıp etinin pigmentlerle renklendirilmesi sonucu elde edilen üründür."
+    },
+    {
+        q: "Türkiye'de Orkinos (Ton balığı) yetiştiriciliğini, levrek ve çipura yetiştiriciliğinden ayıran en temel yapısal fark nedir?",
+        o: [
+            "Orkinosun tatlı sularda yetiştirilmesi",
+            "Orkinosun yumurtadan kuluçkahanede üretilmeyip, doğadan kotalı olarak avlandıktan sonra kafeslerde besiye (semirtme) alınması",
+            "Orkinosların sadece iç pazarda tüketilmesi",
+            "Orkinos üretiminde hiç yem kullanılmaması"
+        ],
+        c: 1,
+        e: "Açıklama: Mavi Yüzgeçli Orkinoslar kapalı sistemde yumurtadan üretilemez (üretimi çok sınırlıdır). Uluslararası kotalar dahilinde Akdeniz'de canlı olarak ağlarla yakalanır, taşıma kafesleriyle çiftliklere getirilir ve aylar boyunca yağlanıp kilo almaları için hamsi/sardalya ile beslenirler."
+    },
+    {
+        q: "Orkinos ihracatında Türkiye'nin geleneksel olarak en büyük ve neredeyse tek müşterisi konumundaki ülke aşağıdakilerden hangisidir?",
+        o: [
+            "ABD",
+            "Rusya",
+            "Japonya",
+            "Almanya"
+        ],
+        c: 2,
+        e: "Açıklama: Türk orkinosları, yüksek yağ oranı ve renk kalitesi nedeniyle Sushi ve Sashimi yapımında kullanılmak üzere dondurulmuş (veya taze uçak kargo ile) neredeyse tamamen Japonya pazarına ihraç edilmektedir."
+    },
+    {
+        q: "İhracatta kilogram başına elde edilen döviz gelirini (ihracat birim değerini) artırmak amacıyla bütün balığın fileto, füme veya marine edilmiş porsiyonluk ürünlere dönüştürülmesine ekonomi literatüründe ne ad verilir?",
+        o: [
+            "Damping",
+            "Sürümden kazanma",
+            "Atıl kapasite kullanımı",
+            "Katma Değer Yaratma"
+        ],
+        c: 3,
+        e: "Açıklama: Ürünün işçilik, teknoloji ve paketleme gibi süreçlerden geçirilerek ilk (hammadde) halinden çok daha yüksek bir fiyata alıcı bulmasına katma değer yaratma denir. Bu, sektörün ucuz hammadde satıcısı olmaktan çıkıp kârlılığını artırmasının temel yoludur."
+    },
+    {
+        q: "Su ürünleri işleme sektöründe kullanılan IQF (Individual Quick Freezing) teknolojisinin geleneksel şoklamaya göre temel kalite avantajı nedir?",
+        o: [
+            "Balığı yavaş yavaş dondurarak elektrik tasarrufu sağlaması",
+            "Balığın ağırlığını yapay olarak artırması",
+            "Hücre zarlarına zarar vermeden hücre içi suyun mikro kristaller halinde donmasını sağlayıp, ürün çözüldüğünde ilk günkü tazeliğinde kalmasını sağlaması",
+            "Balığın rengini kalıcı olarak değiştirmesi"
+        ],
+        c: 2,
+        e: "Açıklama: Bireysel Hızlı Dondurma (IQF) teknolojisi, ürünleri tek tek ve dakikalar içinde -40°C'de dondurur. Yavaş donmada oluşan büyük buz kristalleri hücre zarını yırtarak çözülme anında su ve besin kaybına (drip loss) yol açarken, IQF bu bozulmayı önler."
+    },
+    {
+        q: "Av yasakları döneminde hammadde bulamayan işleme tesislerinin ve personelin boş durması sektörde hangi ekonomik sorun olarak adlandırılır?",
+        o: [
+            "Enflasyonist baskı",
+            "Ölçek ekonomisi",
+            "Tam istihdam",
+            "Atıl Kapasite (Kapasite Kullanım Oranı Sorunu)"
+        ],
+        c: 3,
+        e: "Açıklama: Sadece avcılığa dayalı işleme yapan fabrikalar (örn: hamsi, sardalya) yılın sadece birkaç ayı çalışabilir. Geri kalan zamanda makinelerin ve deponun çalışmaması sabit maliyetleri artırır. Bu atıl kapasiteyi aşmak için tesislere yetiştiricilik ürünleri (tüm yıl bulunur) entegre edilmektedir."
+    },
+    {
+        q: "Avrupa pazarında büyük zincir marketlerin (Tesco, Carrefour vb.) su ürünleri alırken zorunlu tuttuğu, çevresel ve sosyal sürdürülebilirliği kanıtlayan uluslararası kalite belgeleri (Örn: ASC, MSC, GlobalGAP) ne tür bir dış ticaret uygulamasıdır?",
+        o: [
+            "Gümrük vergisi",
+            "Tarife Dışı Engel (Non-Tariff Barrier) / Standart zorunluluğu",
+            "Kota uygulaması",
+            "Serbest dolaşım hakkı"
+        ],
+        c: 1,
+        e: "Açıklama: Gelişmiş ülkeler, gümrük vergileri dışında, ithal ettikleri ürünlere yüksek sağlık, çevre (karbon ayak izi, antibiyotik kalıntısı) ve işçi hakları standartları koyarlar. Bu sertifikalara sahip olmayan ürünler gümrüksüz bile olsa bu pazarlara giremez."
+    },
+    {
+        q: "Yetiştiricilik tesislerinde görülen fırtına, hastalık, alg patlaması (oksijensizlik) gibi biyolojik ve çevresel risklere karşı üreticilerin stoklarını mali olarak güvence altına aldığı devlet destekli sigorta sistemi hangisidir?",
+        o: [
+            "KGF",
+            "SGK",
+            "TARSİM",
+            "DASK"
+        ],
+        c: 2,
+        e: "Açıklama: Tarım Sigortaları Havuzu (TARSİM), tarım ve hayvancılıkta olduğu gibi su ürünleri yetiştiriciliğinde de kafeslerin fırtınada parçalanması veya hastalıktan toplu ölümler gibi spesifik sektörel riskleri poliçe kapsamında teminat altına alır."
+    },
+    {
+        q: "Avrupa Birliği'nin 2050 yılına kadar karbon nötr olmayı hedeflediği ve Türk su ürünleri ihracatçılarını karbon emisyonlarını (Sınırda Karbon Düzenlemesi) düşürmeye mecbur bırakan strateji belgesinin adı nedir?",
+        o: [
+            "Maastricht Kriterleri",
+            "AB Yeşil Mutabakatı (European Green Deal)",
+            "Schengen Antlaşması",
+            "Kyoto Protokolü"
+        ],
+        c: 1,
+        e: "Açıklama: Yeşil Mutabakat, AB'nin sürdürülebilir büyüme stratejisidir. Bu kapsamda Türkiye gibi tedarikçi ülkelerden alınan ürünlerin üretim sürecindeki karbon ayak izi ölçülecek; çevreyi kirleterek üretilen ürünlere AB gümrüklerinde ek karbon vergisi (SKDM) uygulanacaktır."
+    },
+    {
+        q: "\"Dikey Entegrasyon\" stratejisini benimseyen büyük bir su ürünleri firması, değer zincirindeki hangi faaliyeti kendi bünyesine katmış demektir?",
+        o: [
+            "Sadece avcılık yaparak pazarlamayı başkalarına bırakmayı",
+            "Tüm rakiplerini satın alarak tekel olmayı",
+            "Kuluçkahane (yavru), yem fabrikası, yetiştiricilik tesisleri ve işleme/paketleme fabrikasını tek bir holding çatısı altında birleştirmeyi",
+            "Üretimi bırakıp sadece ithalat yapmayı"
+        ],
+        c: 2,
+        e: "Açıklama: Dikey entegrasyon, bir işletmenin tedarik (girdi) veya dağıtım (çıktı) aşamalarını kendi kontrolü altına almasıdır. Su ürünlerinde bu; yemi kendi üretmek, yavruyu kendi kuluçkahanelerinden sağlamak ve hasat edilen balığı kendi fabrikasında işlemek anlamına gelir. Bu sayede aracı kârları ortadan kalkar ve maliyetler minimize edilir."
+    },
+    {
+        q: "Yetiştiricilik tesislerinin kıyılardan uzaklaşıp açık denizlere (Off-shore) taşınmasının temel çevresel ve ekonomik nedeni aşağıdakilerden hangisidir?",
+        o: [
+            "Balıkların daha sıcak su araması",
+            "Açık denizlerde yem maliyetinin düşmesi",
+            "İşçi bulmanın açık denizde daha kolay olması",
+            "Kıyılarda turizm sektörü ile yaşanan alan kullanım çatışmaları (rekabet) ve sığ sulardaki kirlilik/oksijensizlik riskleri"
+        ],
+        c: 3,
+        e: "Açıklama: Özellikle Ege ve Akdeniz'de kıyı şeritleri turizm açısından çok değerlidir. Turizmciler ile balık çiftlikleri arasındaki çatışmaları önlemek ve su sirkülasyonunun/oksijenin bol olduğu temiz sularda daha sağlıklı üretim yapabilmek için kafesler yasal düzenlemelerle açık denizlere taşınmıştır."
+    },
+    {
+        q: "İç su (tatlı su) yetiştiriciliğinde baraj göllerinde en çok üretilen, biyolojik döngüsü kısa ve Türkiye'nin iç tüketiminde önemli bir yer tutan tür hangisidir?",
+        o: [
+            "Kefal",
+            "Sazan",
+            "Gökkuşağı Alabalığı",
+            "Yayın"
+        ],
+        c: 2,
+        e: "Açıklama: [Gökkuşağı Alabalığı (Oncorhynchus mykiss), soğuk ve oksijeni bol iç sularımızda (Keban, Karakaya gibi baraj göllerinde) yoğun olarak yetiştirilir. Hem iç piyasada taze tüketilir hem de füme edilerek veya Karadeniz'de büyütülüp \"Türk Somonu\" adıyla ihraç edilir.]"
+    },
+    {
+        q: "RAS (Resirküle Akvakültür Sistemleri - Kapalı Devre) teknolojisinin geleneksel açık deniz veya toprak havuz sistemlerine göre en büyük çevresel avantajı nedir?",
+        o: [
+            "Kullanılan suyun %90-95'ini mekanik ve biyolojik filtrelerden geçirip temizleyerek yeniden kullanması, böylece su israfını ve doğaya atık salınımını minimize etmesi",
+            "Elektrik tüketiminin hiç olmaması",
+            "Kurulum maliyetinin çok düşük olması",
+            "Balıkların bu sistemde hiç hastalanmaması"
+        ],
+        c: 0,
+        e: "Açıklama: RAS sistemleri, suyu devirdaim ettiren ileri teknoloji kapalı havuzlardır. Tatlı su kaynaklarının azaldığı günümüzde su tasarrufu sağlar ve atık suların doğaya karışmasını engeller. Ancak ilk yatırım ve enerji maliyetleri çok yüksektir."
+    },
+    {
+        q: "Alg patlaması (Kızıl İlyada / Red Tide) olarak bilinen fitoplankton artışının deniz kafes yetiştiriciliğindeki en yıkıcı ekonomik etkisi nedir?",
+        o: [
+            "Yem fiyatlarını artırması",
+            "Ağları parçalaması",
+            "Balıkların daha hızlı büyümesini sağlaması",
+            "Suyun oksijenini aniden tüketerek veya toksin salgılayarak kafeslerdeki balıkların toplu ölümüne (asfiksi) yol açması"
+        ],
+        c: 3,
+        e: "Açıklama: Deniz suyu sıcaklıklarının artması ve tarımsal gübrelerin denize karışması (ötrofikasyon) sonucu mikro algler aşırı ürer. Bu algler geceleri sudaki oksijeni tüketir veya solungaçları tıkayarak balıkların boğulmasına neden olur. İşletmeler için devasa bir biyolojik risktir."
+    },
+    {
+        q: "Su ürünleri ihracatında hedef pazarın (Örn: AB) gümrüklerinde yapılan analizlerde üründe \"Antibiyotik Kalıntısı\" tespit edilmesi işletme için nasıl bir sonuç doğurur?",
+        o: [
+            "Ürünler sınır kapısından reddedilir/imha edilir, firma kara listeye alınır ve ciddi pazar/imaj kaybı yaşanır",
+            "Ürünün fiyatı artar",
+            "Gümrük vergisi indirimi sağlanır",
+            "Sadece iç pazarda satılmasına izin verilir, zarar edilmez"
+        ],
+        c: 0,
+        e: "Açıklama: Gıda güvenliği standartları (Tarife Dışı Engeller) gereği, AB ve Japonya gibi pazarlar insan sağlığına zararlı ilaç/antibiyotik veya ağır metal kalıntılarına karşı sıfır tolerans uygular. Reddedilen ürünlerin lojistik ve imha masrafları firmayı iflasa sürükleyebilir."
+    },
+    {
+        q: "Balık unu üretiminde, hammadde arzının yıllara göre dalgalanması (örneğin hamsi avının bir yıl çok, bir yıl az olması) yem sektörünü hangi ekonomik riske maruz bırakır?",
+        o: [
+            "Tüketicinin balık yemeyi bırakması",
+            "İşçi sendikalarının greve gitmesi",
+            "Fiyat istikrarsızlığı ve dışa bağımlılık (ithalat) oranının zorunlu olarak artması",
+            "Vergi diliminin değişmesi"
+        ],
+        c: 2,
+        e: "Açıklama: Türkiye'deki hamsi rekoltesi düştüğünde, yem fabrikaları kapasitelerini doldurmak ve rasyonları hazırlamak için Peru veya Fas gibi ülkelerden dövizle balık unu ithal etmek zorunda kalırlar. Bu da maliyetleri aniden yükseltir."
+    },
+    {
+        q: "Karadeniz'de Türk Somonu yetiştiriciliğinin önündeki en büyük \"iklimsel/biyolojik\" sınırlayıcı faktör aşağıdakilerden hangisidir?",
+        o: [
+            "Karadeniz'in çok tuzlu olması",
+            "Dalga boylarının düşük olması",
+            "Kış aylarında denizin donması",
+            "Yaz aylarında (Temmuz-Ağustos) deniz suyu sıcaklığının somonun biyolojik dayanma sınırını (20-22°C) aşması ve ölümlere yol açması"
+        ],
+        c: 3,
+        e: "Açıklama: Alabalık ve somongiller soğuk su balıklarıdır. Karadeniz'de yaz aylarında su yüzey sıcaklıkları 25°C'lere çıktığında balıklar strese girer, beslenmeyi keser ve ölürler. Bu nedenle üreticiler balıkları yaz gelmeden (Haziran'a kadar) hasat etmek zorundadır."
+    },
+    {
+        q: "Kafeslerde \"Stoklama Yoğunluğunun\" (metreküpe düşen balık sayısının/kilosunun) ekonomik hırsla ideal seviyenin çok üzerine çıkarılması işletmeye nasıl bir zarar verir?",
+        o: [
+            "Sadece işçilik maliyeti artar",
+            "Balıkların et kalitesi artar",
+            "Balıklarda stres artar, oksijen düşer, hastalıklar hızla yayılır ve FCR (Yem Dönüşüm Oranı) bozularak kârlılık düşer",
+            "Hasat süresi kısalır"
+        ],
+        c: 2,
+        e: "Açıklama: Aşırı stoklama, balıkların yem alma rekabetini bozar, suyun amonyak yükünü artırır. Stres bağışıklığı düşürdüğü için hastalıklar artar, verilen yem ete dönüşmek yerine enerjiye (strese) harcanır. Sonuç olarak verimlilik (FCR) çakılır."
+    },
+    {
+        q: "İşletme ekonomisinde \"Ölçek Ekonomisi\" (Economies of Scale) su ürünleri yetiştiricilik sektöründe nasıl bir yapısal dönüşüme neden olmaktadır?",
+        o: [
+            "Küçük aile işletmelerinin artmasına",
+            "Sektörün tamamen devletleşmesine",
+            "Kooperatifçiliğin güçlenmesine",
+            "İşletmelerin üretim hacmi büyüdükçe birim başına düşen sabit maliyetlerinin azalmasıyla, büyük firmaların piyasayı domine etmesine ve küçüklerin sektörden çekilmesine (şirket birleşmelerine)"
+        ],
+        c: 3,
+        e: "Açıklama: Büyük tonajlı üretim yapan (örneğin yıllık 10.000 ton) bir firmanın kendi yem fabrikasını kurması ve lojistik ağına sahip olması, kilogram başına maliyetini ciddi oranda düşürür. Yıllık 50 ton üreten küçük bir işletme bu düşük maliyetli fiyatlarla rekabet edemeyip sistem dışı kalır."
+    },
+    {
+        q: "Küresel ısınma ve avcılık baskısı nedeniyle azalan balık ununa alternatif olarak, su ürünleri yemlerinde (Ar-Ge aşamasında) öne çıkan \"Sürdürülebilir Protein Kaynakları\" nelerdir?",
+        o: [
+            "Siyah Asker Sineği (Böcek Unu) larvaları, mikroalgler ve tek hücreli proteinler",
+            "Sadece mısır glüteni",
+            "Sentetik laboratuvar proteinleri",
+            "Geri dönüştürülmüş plastikler"
+        ],
+        c: 0,
+        e: "Açıklama: Balık ununun yerini alabilmesi için amino asit profili (hayvansal protein yapısı) balığa uygun olmalıdır. Çevreye zarar vermeden organik atıklarla üretilebilen böcek unları ve mikroalgler geleceğin en önemli sürdürülebilir yem hammaddeleridir."
+    },
+    {
+        q: "Yetiştiricilik tesislerinin veya doğal su kaynaklarının \"Taşıma Kapasitesi\" (Carrying Capacity) neyi ifade eder?",
+        o: [
+            "Depolardaki raf ömrünü",
+            "Tesisin kredi limitini",
+            "Hasat kamyonlarının alabileceği maksimum tonajı",
+            "Bir sucul ekosistemin kendini yenileme yeteneğini ve su kalitesini bozmadan, tolere edebileceği maksimum biyokütle (balık) ve atık (azot/fosfor) yükünü"
+        ],
+        c: 3,
+        e: "Açıklama: Bir koya veya göle kapasitesinin çok üzerinde balık çiftliği kurulursa, balıkların dışkıları ve yenmeyen yemler (organik yük) o suyun asimilasyon kapasitesini aşar, tabanda birikir, oksijeni bitirir ve ekosistemi çökertir."
+    },
+    {
+        q: "Kuluçkahanelerde alabalık gibi bazı türlerin yavrularının cinsiyeti hormon/ısı manipülasyonu ile tamamen dişi (all-female) olacak şekilde ayarlanır. Bunun temel ekonomik sebebi nedir?",
+        o: [
+            "Erkek balıkların yenmesinin yasak olması",
+            "Dişi balıkların erkeklere göre daha hızlı büyümesi, daha az saldırgan olması ve ekonomik değeri yüksek olan havyar (yumurta) üretimi için kullanılabilmesi",
+            "Dişilerin yem tüketmemesi",
+            "Dişi balıkların daha güzel renkli olması"
+        ],
+        c: 1,
+        e: "Açıklama: Özellikle somon ve alabalıklarda erkek balıklar üreme dönemine girdiklerinde enerjilerini cinsel olgunluğa harcar, et kalitesi düşer ve büyüme yavaşlar. Dişiler ise daha istikrarlı büyür. Ayrıca porsiyonluk havyar satışı için dişi balık şarttır."
+    },
+    {
+        q: "Balık yemi rasyonlarında maliyeti düşürmek için balık unu yerine bitkisel protein (soya fasulyesi küspesi vb.) oranının aşırı artırılması, etobur (karnivor) balıklarda (örn: Levrek, Somon) hangi soruna yol açabilir?",
+        o: [
+            "Balıkların obez olması",
+            "Suyun aşırı kirlenmesi",
+            "Sindirim sistemi iltihaplanması (Enteritis), büyüme geriliği ve yemden yararlanma oranının (FCR) düşmesi",
+            "Balığın etinin tamamen beyaza dönmesi"
+        ],
+        c: 2,
+        e: "Açıklama: Etobur balıkların sindirim sistemleri, bitkilerdeki bazı anti-nutrisyonel (beslenme karşıtı) faktörleri ve kompleks karbonhidratları sindiremez. Aşırı soya kullanımı bağırsak mukozasına zarar vererek balığın hastalanmasına ve büyümesinin durmasına neden olur."
+    },
+    {
+        q: "Midye (Çift kabuklular / Bivalvia) yetiştiriciliğinin diğer balık yetiştiricilik türlerine göre ekosisteme sağladığı en büyük fayda ve ekonomik avantaj nedir?",
+        o: [
+            "Çok hızlı yüzmeleri",
+            "Dışarıdan yem gerektirmemeleri ve sudaki fitoplankton/partikülleri filtre ederek doğal bir arıtma (biyoremediasyon) işlevi görmeleri",
+            "Kıyı erozyonunu önlemeleri",
+            "Suyu ısıtarak diğer balıkları korumaları"
+        ],
+        c: 1,
+        e: "Açıklama: Midyeler beslenmek için dışarıdan yeme (dolayısıyla balık ununa/yağına) ihtiyaç duymazlar. Suyu süzerek beslendikleri için suyun berraklığını artırır ve aşırı alg birikimini önlerler. En çevre dostu (yeşil) yetiştiricilik modellerinden biridir."
+    },
+    {
+        q: "Midye yetiştiriciliğinin halk sağlığı ve pazarlama açısından barındırdığı en büyük risk nedir?",
+        o: [
+            "Balıkların midyeleri yemesi",
+            "İhracatının yasak olması",
+            "Suyu filtre ederken kirli sulardaki ağır metalleri (kurşun, cıva), toksinleri ve lağım bakterilerini bünyelerinde biriktirme (biyoakümülasyon) özellikleri",
+            "Deniz tabanına zarar vermeleri"
+        ],
+        c: 2,
+        e: "Açıklama: Midyeler iyi birer temizleyicidir ancak kirli (endüstriyel atıklı) sularda yetiştirildiklerinde bu zehirleri etlerinde biriktirirler. Tüketildiğinde ağır metal zehirlenmesine veya nörotoksik hastalıklara yol açarlar. Bu yüzden üretim sahalarının A sınıfı temiz sularda olması şarttır."
+    },
+    {
+        q: "Türkiye'de su ürünleri yetiştiricilik sektörüne verilen devlet desteklemeleri (sübvansiyon ve teşvikler) genellikle hangi formda verilmektedir?",
+        o: [
+            "Üretilen kilogram başına doğrudan gelir desteği, Ziraat Bankası üzerinden indirimli/sıfır faizli yatırım kredileri ve TARSİM prim destekleri",
+            "Ücretsiz gemi dağıtımı",
+            "İhracat vergisi affı",
+            "Doğrudan yakıt hibesi"
+        ],
+        c: 0,
+        e: "Açıklama: Tarım ve Orman Bakanlığı, sağlıklı gıda üretimini teşvik etmek için alabalık, levrek, çipura gibi türleri üretenlere kilo başına belirli bir miktar destek ödemesi yapar. Ayrıca tesis kurma ve modernizasyon (Kırsal Kalkınma-IPARD) projelerine hibe ve ucuz kredi sağlanır."
+    },
+    {
+        q: "Balık avcılığında kullanılan ağların, koparak veya terk edilerek deniz tabanında kalması ve yıllarca pasif olarak deniz canlılarını yakalayıp öldürmesi çevre felaketine ne ad verilir?",
+        o: [
+            "Trol avcılığı",
+            "Hayalet Ağlar (Ghost Fishing)",
+            "By-catch",
+            "Seçici avcılık"
+        ],
+        c: 1,
+        e: "Açıklama: Plastik ve naylon bazlı ağlar doğada yüzlerce yıl çözünmez. Kaybolan bu ağlar deniz akıntılarıyla sürüklenerek resiflere takılır ve yengeç, balık, kaplumbağa gibi canlıları yakalamaya (ölüm tuzağı olmaya) devam eder. Büyük bir ekonomik israf ve ekolojik yıkımdır."
+    },
+    {
+        q: "İşleme tesislerinde balıkların iç organları, kafaları ve filetodan arta kalan kılçıklı kısımlarının çöpe atılmayıp endüstriye kazandırılması hangi ekonomik modele örnektir?",
+        o: [
+            "Doğrusal Ekonomi",
+            "Enflasyonist Büyüme",
+            "Serbest Piyasa",
+            "Döngüsel Ekonomi (Sıfır Atık)"
+        ],
+        c: 3,
+        e: "Açıklama: [Döngüsel ekonomide \"atık\" kavramı yoktur; bir sürecin atığı diğerinin hammaddesidir. Balık işleme atıkları preslenerek balık silajı, sıvı gübre, kedi/köpek maması veya ilaç sanayisi için deniz kolajeni olarak yüksek katma değerle ekonomiye geri döndürülür.]"
+    },
+    {
+        q: "Bir bölgede (Örn: Muğla-Milas havzası) kuluçkahanelerin, yem fabrikalarının, ağ imalatçılarının, kafes tesislerinin ve işleme-paketleme fabrikalarının birbirine çok yakın coğrafyada konumlanmasına ekonomi biliminde ne denir?",
+        o: [
+            "Monopolleşme",
+            "Bölgesel Kümelenme (Clustering)",
+            "Taşeronlaşma",
+            "İthal İkamesi"
+        ],
+        c: 1,
+        e: "Açıklama: Michael Porter'ın Kümelenme Teorisine göre, aynı sektöre hizmet eden tedarikçilerin ve üreticilerin bir araya toplanması; lojistik maliyetlerini düşürür, kalifiye işgücü bulmayı kolaylaştırır, bilgi transferini hızlandırır ve bölgesel rekabet avantajı (sinerji) yaratır."
+    },
+    {
+        q: "Su ürünlerinde \"Soğuk Zincir\" (Cold Chain) lojistiğinin kırılması (ürünün ısınması), işletme için hangi kritik ekonomik ve yasal riski doğurur?",
+        o: [
+            "Histamin zehirlenmesi riskinin artmasını, ürünün bozulmasını ve tüm partinin gümrükten veya marketten iade edilerek devasa finansal kayıp yaşanmasını",
+            "Nakliye maliyetinin düşmesini",
+            "Balığın lezzetinin artmasını",
+            "Raf ömrünün uzamasını"
+        ],
+        c: 0,
+        e: "Açıklama: Balık, çok hızlı bozulan (perishable) bir gıdadır. Hasattan tüketiciye kadar 0-4°C arasında (veya donuksa -18°C'de) tutulması şarttır. Soğuk zincir kırılırsa bakteriler hızla ürer, scombroid (histamin) zehirlenmesi riski doğar ve ürün çöp olur."
+    },
+    {
+        q: "Tüketici davranışları incelendiğinde, Türkiye'deki kişi başı yıllık su ürünleri tüketiminin (yaklaşık 6-8 kg), dünya ortalamasının (yaklaşık 20 kg) çok altında kalmasının temel ekonomik nedeni nedir?",
+        o: [
+            "Tüketicilerin deniz ürünlerine alerjisinin olması",
+            "Kırmızı et ve tavuğun daha fazla tercih edilmesi, balık fiyatlarının göreceli yüksekliği ve hazırlama/pişirme zorluğu",
+            "İhracatın tamamen yasaklanması",
+            "Denizlerimizde balık olmaması"
+        ],
+        c: 1,
+        e: "Açıklama: Türkiye bir tarım ve hayvancılık ülkesi olduğu için geleneksel beslenme alışkanlığı kırmızı et ve beyaz et (tavuk) ağırlıklıdır. Ayrıca balığın mevsimsel fiyat dalgalanmaları, temizleme ve koku gibi zorlukları tüketimi baskılayan temel faktörlerdir."
+    },
+    {
+        q: "Avrupa ve ABD pazarlarında \"Eko-etiketleme\" (Ecolabeling) olarak bilinen MSC (Deniz Yönetim Konseyi) sertifikası hangi amaca hizmet eder?",
+        o: [
+            "Ürünün genetiğinin değiştirildiğini gösterir",
+            "Sadece yetiştiricilik balıklarına verilir",
+            "Ürünün ucuz olduğunu kanıtlar",
+            "Tüketiciye, satın aldığı balığın okyanus ekosistemine zarar vermeden, kotalara ve sürdürülebilirlik ilkelerine uygun avlandığını garanti eder"
+        ],
+        c: 3,
+        e: "Açıklama: [MSC (Marine Stewardship Council) etiketi, doğadan avlanan deniz ürünleri için dünyanın en prestijli sürdürülebilirlik sertifikasıdır. Çevre bilinci yüksek tüketiciler bu etikete sahip ürünlere \"Premium\" fiyat ödemeye razı olurlar.]"
+    },
+    {
+        q: "Yetiştiricilik ürünleri için MSC'nin muadili olan ve çevresel/sosyal sorumluluk ilkelerini denetleyen bağımsız sertifikasyon programı hangisidir?",
+        o: [
+            "CE Belgesi",
+            "ASC (Akvakültür Yönetim Konseyi)",
+            "TSE",
+            "ISO 9001"
+        ],
+        c: 1,
+        e: "Açıklama: ASC (Aquaculture Stewardship Council), çiftlik balıklarının (yetiştiricilik) temiz sularda, antibiyotiksiz, işçi haklarına saygılı ve doğaya zarar vermeden üretildiğini belgeler. Avrupalı süpermarketler ASC sertifikası olmayan çiftlik balıklarını raflarına koymazlar."
+    },
+    {
+        q: "İhracatçı firmaların, hedef pazarda (Örn: Hollanda veya Almanya) kendi antrepolarını, soğuk hava depolarını ve dağıtım şirketlerini kurmasına stratejik yönetimde ne ad verilir?",
+        o: [
+            "Yatay Küçülme",
+            "Geriye Doğru Dikey Entegrasyon",
+            "İleriye Doğru Dikey Entegrasyon (Pazara Nüfuz)",
+            "Damping"
+        ],
+        c: 2,
+        e: "Açıklama: [Üretici bir firmanın, değer zincirinde müşteriye doğru olan adımları (dağıtım, toptancılık, perakende) satın alması veya kendi kurması \"İleriye Doğru Dikey Entegrasyon\"dur. Türk firmaları Avrupa'da depolar kurarak müşteriye anında taze ürün sunma avantajı yakalamıştır.]"
+    },
+    {
+        q: "Balıkçılık filosunun \"Aşırı Kapasite\" (Overcapacity) sorunu yaşaması, balıkçılık ekonomisinde hangi yıkıcı duruma yol açar?",
+        o: [
+            "İşçi bulmanın kolaylaşmasına",
+            "İhracatın otomatik olarak artmasına",
+            "Fiyatların sürekli artmasına",
+            "Stoklardaki balık miktarından çok daha fazla avlama gücüne (tekne/ağ) sahip olunması nedeniyle biyolojik çöküşe ve av başına düşen maliyetlerin artmasına"
+        ],
+        c: 3,
+        e: "Açıklama: Aşırı kapasite; çok fazla teknenin, çok az balığın peşinden koşması demektir. Bu durum balıkçıların rekabetini artırır, daha fazla yakıt harcamalarına (maliyet artışı) ve kâr marjlarının erimesine neden olur. Sonunda hem balık biter hem balıkçı iflas eder."
+    },
+    {
+        q: "Devletin aşırı kapasiteyi önlemek ve balık stoklarını korumak amacıyla ruhsatlı tekneleri kendi bütçesinden ödeme yaparak sektörden çekmesine uygulanan politikanın adı nedir?",
+        o: [
+            "Haciz İşlemi",
+            "Tekne Geri Alım Programı (Buy-back)",
+            "İhracat Teşviki",
+            "Vergi Muafiyeti"
+        ],
+        c: 1,
+        e: "Açıklama: Tarım ve Orman Bakanlığı, filoyu küçültmek ve av baskısını azaltmak için gönüllülük esasına dayalı olarak balıkçıların teknelerini satın alır ve bu tekneleri balıkçılık faaliyetinden tamamen men eder. Bu, sürdürülebilirliği sağlamak için atılan ekonomik bir adımdır."
+    },
+    {
+        q: "Dünya Ticaret Örgütü (WTO) raporlarına göre balıkçılık sektöründe \"Kötü Sübvansiyonlar\" (Bad Subsidies) olarak adlandırılan ve yasaklanması istenen devlet destekleri hangileridir?",
+        o: [
+            "Eğitim ve Ar-Ge destekleri",
+            "İşçi sağlığı yatırımları",
+            "Filo kapasitesini ve av çabasını yapay olarak artıran ucuz yakıt (ÖTV'siz mazot) ve tekne büyütme kredileri",
+            "Liman altyapısı yapımı"
+        ],
+        c: 2,
+        e: "Açıklama: [Av çabasını artıran (capacity-enhancing) sübvansiyonlar \"kötü\" kabul edilir. Çünkü teknesi zarar eden bir balıkçı normalde avlanmayı bırakacakken, devletin ucuz mazot vermesiyle avlanmaya devam eder ve stokları tüketmeyi sürdürür.]"
+    },
+    {
+        q: "Bireysel Transfer Edilebilir Kotalar (ITQ - Individual Transferable Quotas) sisteminin balıkçılık yönetimine getirdiği en büyük ekonomik yenilik nedir?",
+        o: [
+            "Herkese sınırsız avlanma hakkı vermesi",
+            "Balıkçılara mülkiyet hakkı benzeri belirli bir kota tahsis etmesi ve bu kotaların piyasada alınıp satılabilmesine (ticaretine) olanak tanıması",
+            "Sadece yerel türlerin avlanmasına izin vermesi",
+            "Balık fiyatlarını devletin belirlemesi"
+        ],
+        c: 1,
+        e: "Açıklama: ITQ sistemiyle devlet toplam av miktarını belirler ve balıkçılara paylaştırır. Kota sahibi balıkçı, kâr edemeyecekse kotasını başka bir balıkçıya kiralayabilir veya satabilir. Bu sistem aşırı rekabeti ve israfı önler, ekonomik verimliliği artırır."
+    },
+    {
+        q: "Türkiye iç pazarında tüketimi artırmak için üreticilerin odaklandığı \"Yemeğe Hazır\" (Ready-to-eat) veya \"Pişirmeye Hazır\" (Ready-to-cook) ileri işlenmiş ürünlerin sosyolojik çıkış noktası nedir?",
+        o: [
+            "Kentleşmenin artması, çalışan kadın sayısının çoğalması ve mutfakta geçirilen sürenin azalarak pratik/kokusuz gıda talebinin patlaması",
+            "Balıkların boyutlarının küçülmesi",
+            "Geleneksel yemeklere dönüş",
+            "Nüfusun yaşlanması"
+        ],
+        c: 0,
+        e: "Açıklama: Modern şehir hayatında tüketiciler bütün balık alıp temizlemekle uğraşmak istememektedir. Kılçıksız fileto, soslu fırına hazır paketler veya doğrudan ısıtılıp yenen balık ürünleri bu pratiklik ihtiyacını karşılar ve firmalara yüksek kâr marjı sunar."
+    },
+    {
+        q: "Üretici (balıkçı/yetiştirici) ile Tüketici (market) arasındaki \"Fiyat Makasının\" (Price Spread) aşırı açık olmasının temel sebebi nedir?",
+        o: [
+            "Devletin aldığı aşırı vergiler",
+            "Üreticilerin bilerek fiyatları yükseltmesi",
+            "Balığın çok ucuz olması",
+            "Tedarik zincirindeki aracı (komisyoncu, toptancı, hal, perakendeci) sayısının fazlalığı ve her kademede eklenen kâr marjları ile lojistik maliyetleri"
+        ],
+        c: 3,
+        e: "Açıklama: Balıkçıdan 50 TL'ye çıkan bir balık markette 150 TL'ye satılıyorsa, aradaki 100 TL'lik fark değer zincirindeki lojistik, fire, soğuk hava deposu maliyetleri ve aracıların (kabzımal/komisyoncu) kâr marjlarından kaynaklanır."
+    },
+    {
+        q: "Su ürünleri sektöründe \"İzlenebilirlik\" (Traceability) sisteminin (Örn: ürün üzerine konan bir QR kod) tüketiciye sunduğu en kritik bilgi nedir?",
+        o: [
+            "İşleme fabrikasının mimari planı",
+            "Balığın nerede, ne zaman, hangi gemi/çiftlik tarafından üretildiği, hangi yemleri yediği ve soğuk zincir aşamalarının şeffaf bir şekilde kanıtlanması",
+            "Sadece balığın pişirme tarifi",
+            "Balığın vergisiz fiyatı"
+        ],
+        c: 1,
+        e: "Açıklama: [İzlenebilirlik, \"çiftlikten çatala\" veya \"denizden sofraya\" tüm aşamaların kayıt altına alınmasıdır. Bu sistem gıda güvenliği krizlerinde (örn: zehirlenme) sorunun kaynağını anında bulmayı ve sahteciliği (başka balığı pahalı balıkmış gibi satmayı) önler.]"
+    },
+    {
+        q: "Yapay Zeka (AI) ve görüntü işleme (kamera) teknolojilerinin kafes yetiştiriciliğinde maliyetleri düşürmedeki en büyük rolü nedir?",
+        o: [
+            "Suyun tuzluluğunu değiştirmesi",
+            "Balıkları otomatik hasat etmesi",
+            "Teknelere kaptanlık yapması",
+            "Balıkların doygunluk hareketlerini anlık analiz ederek, otonom yemleme sistemlerine \"yemi kes\" komutu vermesi ve böylece en büyük gider kalemi olan yem israfını sıfırlaması"
+        ],
+        c: 3,
+        e: "Açıklama: Geleneksel yöntemde yem körlemesine atılır, doyan balığın yemediği peletler dibe çökerek israf olur. Yapay zeka destekli kameralar balığın iştahını izler, doyduklarını anladığında yemi keser. Bu, FCR'ı düşürerek milyonlarca lira tasarruf sağlar."
+    },
+    {
+        q: "Türkiye'deki \"Su Ürünleri Kooperatifleri\"nin ekonomik gücünün ve pazarlık payının Avrupa'dakilere (Örn: Norveç) kıyasla çok düşük olmasının ana nedeni nedir?",
+        o: [
+            "Profesyonel yönetilememeleri, soğuk hava deposu/işleme tesisi gibi ortak altyapı yatırımlarının olmaması ve sermaye yetersizliği",
+            "Devletin onları tekel yapması",
+            "Yasaklanmış olmaları",
+            "Çok fazla balık avlamaları"
+        ],
+        c: 0,
+        e: "Açıklama: Türkiye'de kooperatifler genellikle sadece bürokratik işler ve liman işletmesi için kullanılır. Kendi ürünlerini işleyecek, soğuk zincirle pazarlayacak finansal ve yönetsel güce sahip olmadıkları için büyük toptancıların belirlediği fiyatlara boyun eğerler."
+    },
+    {
+        q: "Su ürünleri ihracatında hedef pazarlardaki \"Coğrafi İşaret\" (Geographical Indication) tescili (Örn: Milas Çipurası, Karadeniz Somonu) ürüne nasıl bir ekonomik değer katar?",
+        o: [
+            "Üretim miktarını zorunlu olarak artırır",
+            "Gümrük vergilerini tamamen sıfırlar",
+            "Sadece iç piyasada satılmasını sağlar",
+            "Ürünün o yöreye has özelliklerini (su kalitesi, aroma) tescilleyerek sıradan ürünlerden ayrıştırır, markalaşmasını sağlar ve \"Premium\" fiyatla satılmasına olanak tanır"
+        ],
+        c: 3,
+        e: "Açıklama: Coğrafi işaret, ürünün kalitesinin o bölgenin doğası veya insan faktörüyle özdeşleştiğini gösterir. İtalyanların Parma jambonu gibi, spesifik bir bölgeden çıkan balık da jenerik bir balıktan çok daha yüksek fiyatlara alıcı bulur (Farklılaştırma stratejisi)."
+    },
+    {
+        q: "\"Biyogüvenlik\" (Biosecurity) protokollerinin bir kuluçkahane veya yetiştiricilik tesisindeki temel finansal amacı nedir?",
+        o: [
+            "İhracat kotalarını aşmak",
+            "Elektrik faturasını düşürmek",
+            "Hastalık yapıcı patojenlerin (virüs, bakteri) tesise girmesini katı hijyen kurallarıyla engelleyerek, toplu ölümlerden kaynaklanacak devasa ekonomik kayıpların önüne geçmek",
+            "Yabancıların tesisi satın almasını engellemek"
+        ],
+        c: 2,
+        e: "Açıklama: Biyogüvenlik; dezenfeksiyon havuzları, araç yıkama, ziyaretçi kısıtlaması gibi önlemlerdir. Bir virüsün (örn: VHS veya İnfeksiyöz Somon Anemisi) tesise girmesi tüm stoğun itlaf edilmesine (milyonlarca dolar zarara) neden olabilir. Önlemek, tedavi etmekten çok daha ucuzdur."
+    },
+    {
+        q: "Su ürünleri ekonomisinde balığın talebinin \"Fiyat Esnekliği\" (Price Elasticity of Demand) genelde nasıldır?",
+        o: [
+            "Tamamen inelastiktir (Fiyat artsa da talep düşmez)",
+            "Yüksektir (Esnektir); fiyatlar arttığında tüketiciler kolayca tavuk gibi daha ucuz ikame protein kaynaklarına yönelebilir, talep hızla düşer",
+            "Sıfırdır",
+            "Tersine işler (Fiyat artarsa talep artar)"
+        ],
+        c: 1,
+        e: "Açıklama: Balık (özellikle taze ve lüks türler) zorunlu değil, ikame edilebilir bir gıdadır. Levrek fiyatı aniden iki katına çıkarsa, tüketici bir sonraki gün marketten tavuk veya bakliyat alır. Bu nedenle balık piyasasında fiyatı çok fazla artırmak satış hacmini dramatik şekilde düşürür."
+    },
+    {
+        q: "İklim değişikliğine bağlı olarak okyanus ve denizlerin asitlenmesi (pH seviyesinin düşmesi) ekonomik olarak en çok hangi alt sektörü vuracaktır?",
+        o: [
+            "Suyu filtreleyen ve kalsiyum karbonat ile kabuk yapan Karides, İstiridye ve Midye gibi çift kabuklu / kabuklu yetiştiriciliğini",
+            "Yem fabrikalarını",
+            "Alg (yosun) yetiştiriciliğini",
+            "Konserve balıkçılığını"
+        ],
+        c: 0,
+        e: "Açıklama: Karbondioksitin denizde çözünmesi suyu asidik yapar. Asidik su, deniz canlılarının kabuk oluşturmak için ihtiyaç duyduğu karbonat iyonlarını bağlar. İstiridye ve midyelerin kabukları zayıflar, yavrular ölür. Bu da milyarlarca dolarlık kabuklu endüstrisini doğrudan tehdit eder."
+    },
+    {
+        q: "Sektörde uygulanan \"Sözleşmeli Yetiştiricilik\" (Contract Farming) modelinde küçük üretici (taşeron) ile büyük entegre firma arasındaki ilişkinin temel ekonomik dinamiği nedir?",
+        o: [
+            "Küçük üreticinin firmayı satın alması",
+            "Tamamen serbest piyasa koşullarının geçerli olması",
+            "Büyük firmanın küçük üreticiye yavru ve yemi peşin verip, hasat sonunda balığı belli bir fiyattan geri alma garantisi sunarak küçük üreticinin pazarlama ve finansman riskini üstlenmesi",
+            "İki tarafın da zarar etmesi"
+        ],
+        c: 2,
+        e: "Açıklama: Bu modelde küçük üretici sermaye bağlamaz (yem/yavru borçlanır) ve satamama korkusu yaşamaz, sadece işçilik ve bakım yapar. Büyük firma ise kapasitesini artırmak için yeni tesis kurma maliyetinden kurtulur ve hammadde tedarikini garanti altına alır (Kazan-Kazan durumu)."
+    },
+    {
+        q: "Küresel Mavi Ekonomi (Blue Economy) konsepti içerisinde \"Mavi Karbon\" (Blue Carbon) ticareti su ürünleri yatırımcılarına gelecekte nasıl bir yeni gelir modeli sunmaktadır?",
+        o: [
+            "Balıkların daha mavi renkte üretilmesi",
+            "Sadece elektrik üretimi yapılması",
+            "Denizden petrol çıkartılması",
+            "Deniz yosunu (Kelp/Makroalg) ve midye tesislerinin denizdeki karbonu emme kapasitelerinin sertifikalandırılıp, karbon piyasalarında (Karbon Kredisi olarak) çevreyi kirleten şirketlere satılması"
+        ],
+        c: 3,
+        e: "Açıklama: Makroalgler ve deniz çayırları ormanlardan çok daha fazla karbondioksit emer. Gelecekte, büyük ölçekli yosun çiftliği kuran bir girişimci, sadece yosun satarak değil, havadan temizlediği karbonun miktarını (Karbon Kredisi) fabrikalara veya havayolu şirketlerine satarak da devasa paralar kazanacaktır."
+    },
+    {
+        q: "Su ürünleri üreticilerinin, gelecekteki olası fiyat düşüşlerine karşı bugünden belirli bir fiyattan satış sözleşmesi yaparak kendini güvenceye aldığı finansal piyasa işlemi hangisidir?",
+        o: [
+            "Spot piyasa işlemi",
+            "Açığa satış",
+            "Vadeli İşlem (Futures / Forward) Sözleşmesi / Hedging",
+            "Leasing (Finansal kiralama)"
+        ],
+        c: 2,
+        e: "Açıklama: Üretim süreci uzun olan balıkçılıkta (örn: 18 ay) hasat zamanı fiyatların ne olacağı belirsizdir. Üretici, fiyat düşüşü riskinden korunmak (hedge etmek) için alıcıyla bugünden gelecekteki satış fiyatını sabitleyen vadeli sözleşmeler yapar. Bu durum risk yönetiminin temelidir."
+    },
+    {
+        q: "Sadece levrek ve çipura üreten bir işletmenin, pazar daralması veya türe özgü bir hastalık riskine karşı üretim portföyüne \"Granyöz (Sarıağız)\" veya \"Sinarit\" gibi yeni türleri eklemesi stratejik yönetimde ne olarak adlandırılır?",
+        o: [
+            "Fiyat Kırma (Damping)",
+            "Çeşitlendirme (Diversification) Stratejisi",
+            "Daralma Stratejisi",
+            "Pazar Kaybı"
+        ],
+        c: 1,
+        e: "Açıklama: [\"Yumurtaları aynı sepete koymamak\" prensibiyle hareket eden firmalar, biyolojik ve pazar risklerini dağıtmak için ürün yelpazelerini genişletirler. Tek bir türe bağlı kalmamak, fiyat dalgalanmalarına ve hastalıklara karşı ekonomik dayanıklılığı artırır.]"
+    },
+    {
+        q: "Bir girişimcinin sermayesini su ürünleri tesisi kurmak yerine bankaya faize yatırması durumunda elde edeceği potansiyel gelir, su ürünleri yatırımının nesini ifade eder?",
+        o: [
+            "Marjinal gelirini",
+            "Sabit maliyetini",
+            "Fırsat Maliyetini (Alternatif Maliyet)",
+            "Batık maliyetini"
+        ],
+        c: 2,
+        e: "Açıklama: Fırsat maliyeti, bir karar verilirken vazgeçilen en iyi alternatifin değeridir. Eğer balık çiftliği kurmanın getireceği net kâr, o parayı bankada risksiz faizde tutmaktan (fırsat maliyetinden) düşükse, bu yatırım ekonomik açıdan rasyonel (mantıklı) değildir."
+    },
+    {
+        q: "Su ürünleri işleme fabrikalarının genellikle kıyı şeridindeki kırsal veya yarı kentsel alanlara kurulmasının en büyük bölgesel makroekonomik katkısı nedir?",
+        o: [
+            "Şehir merkezinde arsa fiyatlarını artırması",
+            "İthalatı patlatması",
+            "Kırsalda vergi oranlarını sıfırlaması",
+            "Kırsal alanda özellikle kadın istihdamını artırarak yerel kalkınmayı sağlaması ve büyükşehirlere göçü (tersine göç) engellemesi"
+        ],
+        c: 3,
+        e: "Açıklama: Balık işleme ve paketleme yoğun emek gerektiren bir süreçtir ve çalışanların büyük çoğunluğu kadınlardan oluşur. Kırsal bölgelerde kurulan bu fabrikalar, tarım dışı gelir yaratarak bölgenin ekonomik refahını artırır ve demografik yapıyı korur."
+    },
+    {
+        q: "Karides ve yengeç gibi kabuklu su ürünleri işleyen tesislerin, çöpe giden kabuk atıklarından kozmetik ve tıp (ameliyat ipliği, yara bandı) sanayisi için ürettiği yüksek katma değerli yan ürün (by-product) nedir?",
+        o: [
+            "Kitin ve Kitosan",
+            "Soya küspesi",
+            "Omega-3 kapsülü",
+            "Balık unu"
+        ],
+        c: 0,
+        e: "Açıklama: Döngüsel ekonominin mükemmel bir örneği olan kitin ve kitosan, eklembacaklıların kabuklarından elde edilen biyopolimerlerdir. Çok değerli endüstriyel hammaddelerdir ve işletmenin sadece atıklardan ana ürün kadar yüksek ciro yapmasını sağlayabilir."
+    },
+    {
+        q: "Hedef pazarın (Örn: Avrupa Birliği), belirli bir miktar su ürünleri ithalatına kadar düşük veya sıfır gümrük vergisi uygulayıp, bu miktar aşıldıktan sonra ithal edilen ürünlere çok yüksek vergi koyması uygulamasına ne denir?",
+        o: [
+            "Serbest ticaret bölgesi",
+            "İhracat iadesi",
+            "Tam ambargo",
+            "Tarife Kotası (Tariff Quota)"
+        ],
+        c: 3,
+        e: "Açıklama: Tarife kotası, hem kendi iç üreticisini korumak hem de ihtiyaç duyduğu kadar ürünü ucuza almak isteyen ülkelerin uyguladığı bir dış ticaret politikasıdır. Türkiye gibi ihracatçılar, düşük vergili kotalar dolmadan ürünlerini pazara sokmak için yılın başında kıyasıya rekabet ederler."
+    },
+    {
+        q: "Tüketicinin marketteki balığın taze mi bayat mı, veya antibiyotikli mi organik mi olduğunu satıcı kadar iyi bilememesi durumu, piyasa ekonomisinde hangi pazar başarısızlığına (Market Failure) örnektir?",
+        o: [
+            "Monopol gücü",
+            "Asimetrik Bilgi (Asymmetric Information)",
+            "Tam rekabet",
+            "Dışsallık"
+        ],
+        c: 1,
+        e: "Açıklama: Satıcının ürün hakkında alıcıdan daha fazla bilgiye sahip olması asimetrik bilgidir. Kötü niyetli satıcılar bayat balığı taze gibi satabilir (Ters Seçim). Bunu aşmak için kalite belgeleri, marka bilinirliği ve devlet denetimleri (izlenebilirlik) zorunludur."
+    },
+    {
+        q: "Karadeniz'de hamsi avlayan binlerce küçük balıkçının, avladıkları balığı sadece bölgedeki 2-3 büyük balık unu fabrikasına satmak zorunda kalması, bu fabrikalara nasıl bir piyasa gücü verir?",
+        o: [
+            "Monopson (Tek/Az Alıcı) Gücü - Fiyatı alıcının belirlemesi",
+            "Oligopol gücü",
+            "Tam rekabet avantajı",
+            "Serbest piyasa dengesi"
+        ],
+        c: 0,
+        e: "Açıklama: Çok sayıda satıcının (balıkçı), çok az sayıda alıcıya (fabrika) ürün satmak zorunda olduğu durumlarda alıcı piyasaya hakimdir. Fabrikalar anlaşıp alım fiyatını çok düşük belirleyebilir ve balığın bozulma riski nedeniyle balıkçı bu düşük fiyatı kabullenmek zorunda kalır."
+    },
+    {
+        q: "Mikroekonomik kurala göre, bir su ürünleri yetiştiricisinin kârını \"maksimize\" ettiği (en yüksek seviyeye çıkardığı) üretim noktası hangisidir?",
+        o: [
+            "İşçi sayısının iki katına çıktığı nokta",
+            "Fiyatın sıfır olduğu nokta",
+            "Marjinal Maliyetin (MC), Marjinal Gelire (MR) eşit olduğu nokta (MC=MR)",
+            "Toplam maliyetin en yüksek olduğu nokta"
+        ],
+        c: 2,
+        e: "Açıklama: Bir işletme, ürettiği son birim balığın kendisine maliyeti (MC), o balığın satışından elde edeceği gelire (MR) eşitlenene kadar üretimi artırmalıdır. Bu nokta aşıldığında üretilen her ekstra balık zarara yol açar, kâr düşmeye başlar."
+    },
+    {
+        q: "Su ürünleri fiyatlarında gözlemlenen ve üreticilerin bugünkü yüksek fiyatlara bakıp yatırımı artırması, ancak balıkların büyümesi uzun sürdüğü için hasat zamanı piyasada aşırı arz (bolluk) oluşup fiyatların çökmesine neden olan ekonomik teorem hangisidir?",
+        o: [
+            "Örümcek Ağı (Cobweb) Teoremi / Üretim Gecikmesi",
+            "Engel Kanunu",
+            "Gresham Kanunu",
+            "Pareto Optimizasyonu"
+        ],
+        c: 0,
+        e: "Açıklama: Tarımsal ve hayvansal üretimde arz, fiyata anında tepki veremez. Örneğin bugün levrek fiyatı çok yüksek diye herkes kafes kurarsa, 18 ay sonra milyonlarca levrek aynı anda hasat edilir ve arz fazlasından dolayı fiyatlar dibe vurur. Bu döngü sürekli tekrar eder."
+    },
+    {
+        q: "Taze ve soğutulmuş (donuk olmayan) su ürünlerinin Avrupa veya ABD pazarına bozulmadan yetiştirilebilmesi için kullanılan en yaygın ancak maliyeti (ve karbon ayak izi) en yüksek lojistik yöntemi hangisidir?",
+        o: [
+            "Açık kasa kamyon",
+            "Gemi kargo (Konteyner)",
+            "Tren yolu",
+            "Uçak Kargo (Air Freight)"
+        ],
+        c: 3,
+        e: "Açıklama: Özellikle taze Türk Somonu, Orkinos veya premium fileto ürünleri raf ömrü kısıtlı olduğu için uzak pazarlara (ABD, Japonya) uçak kargo ile gönderilir. Çok hızlıdır ancak lojistik maliyeti ve karbon emisyonu en yüksek taşıma şeklidir, bu yüzden sadece katma değerli ürünlerde kullanılır."
+    },
+    {
+        q: "Bir balıkçı teknesinin, ağların veya kafes donanımlarının zamanla yıpranması, eskimesi veya teknolojik ömrünü tamamlaması nedeniyle işletme maliyetlerine yansıtılan muhasebe giderine ne ad verilir?",
+        o: [
+            "Gümrük vergisi",
+            "Amortisman (Yıpranma/Aşınma) Gideri",
+            "Rant",
+            "Promosyon gideri"
+        ],
+        c: 1,
+        e: "Açıklama: [Su ürünleri üretim araçları tuzlu su ve fırtına gibi zorlu şartlarda hızlı yıpranır. İşletmeler, yatırımlarını yenileyebilmek için her yıl bu demirbaşların değerinden belli bir miktar düşerek bunu maliyet tablosuna \"Amortisman Gideri\" (sabit maliyet) olarak yansıtmak zorundadır.]"
+    },
+    {
+        q: "Bir balıkçılık firmasının ürünlerini genel tüketiciye (süpermarketlere) ucuz fiyattan, lüks otel ve Sushi restoranlarına ise özel paketlenmiş premium kalitede ve çok yüksek fiyattan satması pazarlamada hangi kavramla ifade edilir?",
+        o: [
+            "Karşılaştırmalı üstünlük",
+            "Makroekonomik kriz",
+            "Ürün imhası",
+            "Pazar Segmentasyonu (Bölümlendirme) ve Fiyat Farklılaştırması"
+        ],
+        c: 3,
+        e: "Açıklama: Firma tüm pazarı aynı görmez. Müşterilerin gelir seviyesi ve beklentilerine göre pazarı alt gruplara (segmentlere) böler. Üst gelir grubuna (HoReCa - Otel, Restoran, Kafe) özel hizmet sunarak yüksek kâr marjı elde ederken, kitle pazarına sürümden kazanır."
+    },
+    {
+        q: "Ürünlerin (Örn: Türk Somonu) yurtdışı pazarında bilinirliğini artırmak için fuarlara katılmak, tadım etkinlikleri düzenlemek ve reklama bütçe ayırmak Pazarlama Karmasının (4P) hangi unsurudur?",
+        o: [
+            "Place (Dağıtım)",
+            "Product (Ürün)",
+            "Promotion (Tutundurma/Tanıtım)",
+            "Price (Fiyat)"
+        ],
+        c: 2,
+        e: "Açıklama: Pazarlama stratejisinin en önemli ayaklarından biri hedef kitle ile iletişim kurmaktır. Tutundurma faaliyetleri; ürünün marka imajını güçlendirmeyi, tüketici ön yargılarını kırmayı ve nihai satış hacmini (ihracatı) artırmayı hedefler."
+    },
+    {
+        q: "Dış ticarette, ihracatçı (satıcı) firmanın malı gönderdikten sonra parasını alamama (tahsilat) riskini ortadan kaldırmak için bankalar aracılığıyla kullanılan en güvenli ödeme şekli hangisidir?",
+        o: [
+            "Kredi kartsız peşin ödeme",
+            "Akreditif (Letter of Credit - L/C)",
+            "Mal mukabili ödeme (Açık hesap)",
+            "Konsinye satış"
+        ],
+        c: 1,
+        e: "Açıklama: Akreditif sisteminde, alıcının bankası, malların istenilen kalitede ve zamanda yüklendiğine dair belgeler sunulduğu an ihracatçıya ödeme yapmayı garanti eder. Bu sayede her iki taraf da (alıcı malı almayı, satıcı parayı almayı) uluslararası bankacılık güvencesine sahip olur."
+    },
+    {
+        q: "Balık kuluçkahanelerinde yavru üretim sezonunun bitmesiyle boş kalan havuzların işletmeye yarattığı maliyet yükü hangi maliyet türüne girer?",
+        o: [
+            "Nakliye maliyeti",
+            "Marjinal maliyet",
+            "Değişken maliyet (Yem/İlaç)",
+            "Sabit Maliyet (Kira, sigorta, bekçi maaşı)"
+        ],
+        c: 3,
+        e: "Açıklama: İşletme hiç üretim yapmasa bile (tanklar boşken) ödemek zorunda olduğu giderler Sabit Maliyetlerdir. Kuluçkahaneler yılın belirli dönemlerinde tam kapasite çalışır; atıl (boş) kaldıkları dönemde sabit maliyetler karlılığı aşağı çeken en önemli yüktür."
+    },
+    {
+        q: "Dünya Ticaret Örgütü (DTÖ) kurallarına göre, bir ülkenin su ürünleri sektörüne yaptığı devlet desteklerinin (sübvansiyonların) uluslararası ticareti bozmayacak kadar küçük sayıldığı ve serbest bırakıldığı limite ne ad verilir?",
+        o: [
+            "Makro limit",
+            "De Minimis Kuralı",
+            "Anti-damping",
+            "Gümrük birliği"
+        ],
+        c: 1,
+        e: "Açıklama: [De Minimis, hukuki ve ekonomik bir kavramdır; \"hukuk önemsiz işlerle ilgilenmez\" anlamına gelir. Su ürünleri üretim değerinin belirli bir çok küçük yüzdesini (%5 gibi) aşmayan devlet yardımları, küresel rekabeti haksız yere bozmadığı kabul edilerek DTÖ tarafından şikayet konusu yapılmaz.]"
+    },
+    {
+        q: "Türkiye gibi yem hammaddesinde dışa bağımlı ülkelerde, döviz kurunun (Dolar/TL) ani yükselmesi balık maliyetlerini neden anında artırır?",
+        o: [
+            "Balık yemi rasyonunun %60-70'ini oluşturan balık unu, yağı ve soya gibi ürünlerin dövizle ithal edilmesi nedeniyle (İthal enflasyonu)",
+            "İşçi maaşlarının dolara endeksli olması nedeniyle",
+            "Deniz suyunun ısınması nedeniyle",
+            "Balıkların daha çok yem yemesi nedeniyle"
+        ],
+        c: 0,
+        e: "Açıklama: Yetiştiricilikte değişken maliyetlerin aslan payı yemdir. Kur arttığında TL bazında yem fiyatı katlanır. İç pazara çalışan üretici artan bu maliyeti satış fiyatına yansıtamazsa zarar eder. İhracatçı ise kur artışından gelirini de artırdığı için korunur (Doğal Hedge)."
+    },
+    {
+        q: "Kırmızı et veya tavuk fiyatlarında büyük bir artış yaşandığında, tüketicilerin daha uygun fiyatlı balık türlerine (Örn: Hamsi, İstavrit) yönelmesi talebin hangi özelliğini gösterir?",
+        o: [
+            "Monopolistik rekabet",
+            "İzolasyon etkisi",
+            "Çapraz Fiyat Esnekliği (İkame Mal İlişkisi)",
+            "Giffen Paradoksu"
+        ],
+        c: 2,
+        e: "Açıklama: Çapraz fiyat esnekliği, bir malın fiyatındaki değişimin başka bir malın talebini nasıl etkilediğini ölçer. Et, tavuk ve balık ikame (birbirinin yerine geçebilen) protein kaynaklarıdır. Et fiyatı artarsa (diğer faktörler sabitken) balık talebi otomatik olarak artar."
+    },
+    {
+        q: "Geleneksel olarak sadece fileto satan bir firmanın, Ar-Ge yatırımı yaparak balık derisinden lüks moda aksesuarları (çanta, cüzdan) veya medikal yanık bandı üretmeye başlaması inovasyon türlerinden hangisine girer?",
+        o: [
+            "Pazarlama inovasyonu",
+            "Ürün ve Süreç İnovasyonu (Katma değerli ürün geliştirme)",
+            "Üretimi daraltma",
+            "Sadece taklitçilik"
+        ],
+        c: 1,
+        e: "Açıklama: Çöpe giden balık derisinin tabaklanarak su geçirmez ve dayanıklı bir deriye (fish leather) dönüştürülmesi veya içindeki kolajenin medikal alanda kullanılması çığır açıcı bir ürün inovasyonudur. Çevresel atığı sıfırlarken, firmaya yepyeni ve çok kârlı pazarların kapısını açar."
+    },
+    {
+        q: "Nesli tehlike altında olan Mersin balığından elde edilen siyah havyarın uluslararası ticaretinin çok sıkı kotalara bağlanması ve denetlenmesi hangi uluslararası sözleşmenin (ve ekonomik kısıtlamanın) sonucudur?",
+        o: [
+            "NAFTA",
+            "Paris İklim Anlaşması",
+            "CITES (Nesli Tehlike Altında Olan Yabani Hayvan ve Bitki Türlerinin Uluslararası Ticaretine İlişkin Sözleşme)",
+            "NATO Antlaşması"
+        ],
+        c: 2,
+        e: "Açıklama: CITES sözleşmesi, vahşi doğadan elde edilen nadir ürünlerin (fildişi, havyar vb.) ticaretini kontrol altına alarak türlerin yok olmasını engeller. Bu durum, yasal yollardan üretilen (yetiştiricilik) havyarın piyasa değerini ve ekonomik getirisini aşırı derecede yükseltmiştir."
+    },
+    {
+        q: "Balıkçılık ekonomisi literatüründe \"Maksimum Ekonomik Verim\" (MEY - Maximum Economic Yield) noktası neyi ifade eder?",
+        o: [
+            "Denizdeki son balığın avlanmasını",
+            "Avcılıktan elde edilen toplam gelir ile toplam avlanma maliyeti (yakıt, işçilik vb.) arasındaki kâr marjının (ekonomik rantın) en yüksek olduğu avlanma seviyesini",
+            "Tüketici fiyatlarının en düşük olduğu noktayı",
+            "Sadece büyük gemilerin kâr ettiği noktayı"
+        ],
+        c: 1,
+        e: "Açıklama: MSY (Maksimum Sürdürülebilir Verim) biyolojik olarak en çok balığın tutulduğu noktayken; MEY, balıkçının cebine en çok kârın girdiği noktadır. Genellikle MEY noktasına ulaşmak için MSY'den daha az avlanmak (daha az maliyet yapmak) gerekir. Bu da hem balığı hem balıkçının cebini korur."
+    },
+    {
+        q: "Devletin balıkçılıkta \"Asgari Avlanabilir Boy\" (Örn: Lüfer için 18 cm, Hamsi için 9 cm) yasağı uygulamasının arkasındaki temel biyo-ekonomik mantık nedir?",
+        o: [
+            "Büyük balıkların yakalanmasının daha kolay olması",
+            "Küçük balıkların lezzetsiz olması",
+            "İhracatçıların sadece büyük balık istemesi",
+            "Balıkların en az bir kez üremesine (yumurta bırakmasına) fırsat tanıyarak gelecek yılların balık stokunu (ve balıkçının gelecekteki sermayesini) garanti altına almak"
+        ],
+        c: 3,
+        e: "Açıklama: Balıklar büyümeden ve üremeden avlanılırsa stok kendini yenileyemez. Boy yasağı, doğal sermayenin (anaç balıkların) korunması ve sektörün uzun vadeli ekonomik çöküşten (büyüme aşırı avcılığı) kurtarılması için alınan en temel idari tedbirdir."
+    },
+    {
+        q: "Su ürünleri yetiştiriciliğinin sürdürülebilirliğini ölçmek için kullanılan \"FIFO\" (Fish In - Fish Out) oranı neyi gösterir?",
+        o: [
+            "İhracat ve ithalat dengesini",
+            "1 kg çiftlik balığı üretebilmek için doğadan kaç kg vahşi balık (balık unu/yağı formunda) tüketildiğini",
+            "Balıkların oksijen tüketim hızını",
+            "Balıkların havuzda kalma süresini"
+        ],
+        c: 1,
+        e: "Açıklama: Geçmişte 1 kg somon üretmek için 3-4 kg hamsi/sardalya (balık unu) harcanıyordu (FIFO oranı yüksek). Ar-Ge ve bitkisel proteinlerin kullanımıyla bu oran günümüzde 1'in altına (örn: 0.8) düşürülmüştür. Bu, sektörün doğadan aldığından daha fazla balığı piyasaya sunduğunu gösteren kritik bir ekonomik göstergedir."
+    },
+    {
+        q: "Sahil şeridinde balık çiftliği kurmak ile 5 yıldızlı turizm oteli kurmak arasında yaşanan alan rekabetinde, devletin karar verirken dikkate aldığı \"Fırsat Maliyeti\" kavramı hangi durumu açıklar?",
+        o: [
+            "Sadece otellerin vergi ödemesini",
+            "Deniz suyunun ısınma maliyetini",
+            "Balıkların otel müşterilerini rahatsız etmesini",
+            "Bir alanı balık çiftliğine tahsis etmenin maliyetinin, o alanın turizmden getireceği potansiyel döviz gelirinden (vazgeçilen en iyi alternatiften) mahrum kalmak olması"
+        ],
+        c: 3,
+        e: "Açıklama: Ekonomide kaynaklar (kıyılar) kıttır. Aynı koya hem otel hem kafes yapılamıyorsa, politika yapıcılar hangi sektörün bölgesel kalkınmaya, istihdama ve döviz girdisine daha yüksek katkı (daha düşük fırsat maliyeti) sağlayacağını analiz ederek karar verirler."
+    },
+    {
+        q: "Sportif ve rekreasyonel balıkçılığın (hobi balıkçılığı) yerel ekonomiye olan katkısı hangi ekonomik kavramla doğrudan ilişkilidir?",
+        o: [
+            "Çarpan Etkisi (Multiplier Effect) - Tekne kiralama, olta takımı, konaklama ve restoran harcamalarının yarattığı dolaylı istihdam ve gelir",
+            "Damping",
+            "Enflasyon",
+            "Monopson"
+        ],
+        c: 0,
+        e: "Açıklama: Hobi balıkçısı sadece balık tutmaz; o bölgeye seyahat eder, otelde kalır, yem alır, tekne kiralar. Tutulan 1 kg balığın ekonomiye yarattığı katma değer ve bölgesel çarpan etkisi, ticari avcılıktaki 1 kg balığın değerinden çok daha yüksektir."
+    },
+    {
+        q: "Aynı değer zinciri basamağında yer alan iki veya daha fazla rakip su ürünleri firmasının (Örn: iki farklı levrek üreticisinin) birleşerek pazar paylarını artırmasına ne ad verilir?",
+        o: [
+            "Bölgesel kalkınma",
+            "Özelleştirme",
+            "Dikey Entegrasyon",
+            "Yatay Entegrasyon (Horizontal Integration)"
+        ],
+        c: 3,
+        e: "Açıklama: Yatay entegrasyon, aynı işi yapan firmaların birleşmesi veya birbirini satın almasıdır. Amacı pazar gücünü artırmak, rekabeti azaltmak ve daha büyük ölçeklerde üretim yaparak birim maliyetleri (Ölçek Ekonomisi) düşürmektir."
+    },
+    {
+        q: "Dış ticarette, İsrail veya Orta Doğu pazarlarına su ürünleri ihraç edecek bir firmanın \"Kosher\" veya \"Helal\" kesim/üretim sertifikaları alması pazarlamada hangi stratejinin aracıdır?",
+        o: [
+            "Pazar Bölümlendirme ve Niş Pazarlara Nüfuz Etme (Tarife Dışı Engelleri Aşma)",
+            "Ürünü imha etme",
+            "Kapasite düşürme",
+            "Fiyat kırma stratejisi"
+        ],
+        c: 0,
+        e: "Açıklama: [Dini veya kültürel gıda standartları (Helal, Kosher) hedef pazara girmek için aşılması gereken tarife dışı standartlardır. Bu belgeleri alan firmalar, sadece bu kriteri arayan özel ve rekabetin nispeten daha az olduğu \"niş\" pazar segmentlerine girerek yüksek kâr elde ederler.]"
+    },
+    {
+        q: "Deniz avcılığı yapan bir trol veya gırgır teknesinin günlük operasyonlarında toplam maliyetinin en büyük kısmını (genellikle %40-60'ını) oluşturan \"Değişken Maliyet\" kalemi hangisidir?",
+        o: [
+            "Ağ amortismanı",
+            "Gemi sigortası",
+            "Yakıt (Akaryakıt/Mazot) giderleri",
+            "Liman bağlama ücreti"
+        ],
+        c: 2,
+        e: "Açıklama: Avcılık tamamen deniz üzerinde hareket etmeye ve balık aramaya dayalıdır. Akaryakıt fiyatlarındaki dalgalanmalar balıkçının doğrudan sefere çıkıp çıkmama kararını etkiler. Yakıt fiyatı artarsa, yakalanan balığın piyasa değeri yakıtı karşılamıyorsa tekne limandan çıkmaz."
+    },
+    {
+        q: "Balık atıklarının (dışkılarının) gübre olarak kullanıldığı ve bitki (Örn: marul, domates) yetiştiriciliği ile kapalı devre balık yetiştiriciliğinin (RAS) aynı sistemde birleştirildiği yenilikçi, döngüsel üretim modeli hangisidir?",
+        o: [
+            "Trol avcılığı",
+            "Derin deniz madenciliği",
+            "Monokültür",
+            "Akuaponik (Aquaponics)"
+        ],
+        c: 3,
+        e: "Açıklama: Akuaponik sistemlerde balıkların suya bıraktığı amonyak, bakteriler tarafından nitrata çevrilir ve bitkiler için bedava doğal gübre olur. Bitkiler kökleriyle suyu temizler ve balıklara geri gönderir. Hem balık hem sebze satılarak işletmenin geliri çeşitlendirilir (Döngüsel Ekonomi)."
+    },
+    {
+        q: "Hedeflenen ticari balık türünü avlarken ağlara kazara takılan ekonomik değeri düşük balıkların, deniz kaplumbağalarının veya yunusların ölü olarak denize geri atılmasına sektörde ne ad verilir?",
+        o: [
+            "Hedef Dışı Av ve Iskarta (By-catch and Discard)",
+            "Pelajik avcılık",
+            "Seçici avcılık",
+            "Sürdürülebilir avcılık"
+        ],
+        c: 0,
+        e: "Açıklama: By-catch, balıkçılık ekonomisinde devasa bir kaynak israfıdır (Müştereklerin trajedisi). Her yıl milyonlarca ton ticari olmayan veya yavru canlı kazara ağlara takılıp ölmektedir. Bu israfı önlemek için ağ gözü açıklıklarının düzenlenmesi ve kaçış panellerinin kullanılması zorunludur."
+    },
+    {
+        q: "Makroekonomik bir sorun olarak, yerel para biriminin (Örn: TL) yabancı para birimleri (Dolar/Euro) karşısında \"aşırı değer kazanması\" su ürünleri ihracatçısını nasıl etkiler?",
+        o: [
+            "Etki etmez",
+            "İhracatçının kârı katlanarak artar",
+            "İhraç edilen ürünlerin dış pazardaki döviz cinsi fiyatı pahalılaşacağı için rekabet gücü düşer ve ihracat zorlaşır (İthalat ise ucuzlar)",
+            "İç pazarda balık biter"
+        ],
+        c: 2,
+        e: "Açıklama: TL aşırı değerli olduğunda, Avrupalı bir alıcı Türk levreği almak için daha fazla Euro ödemek zorunda kalır. Bu durumda alıcı rotasını Yunanistan veya İspanya'ya çevirebilir. Para biriminin değerinin dengede olması, uluslararası pazar payını korumak için kritiktir."
+    },
+    {
+        q: "Su ürünleri satışında geleneksel balık hali ve komisyoncuları aradan çıkararak, ürünlerin internet üzerinden doğrudan nihai tüketiciye satılmasına (D2C - Direct to Consumer) dayalı e-ticaret modeli üreticiye ne sağlar?",
+        o: [
+            "Raf ömrünü kısaltır",
+            "Soğuk zincire ihtiyacı bitirir",
+            "Vergilerin artmasını sağlar",
+            "Tedarik zincirini kısaltarak aracı kârlarını ortadan kaldırır, üreticinin kâr marjını artırır ve tüketiciye daha uygun/taze ürün sunulmasını sağlar"
+        ],
+        c: 3,
+        e: "Açıklama: [E-ticaret ve kargo ağlarının gelişmesiyle, üreticiler doğrudan sosyal medya veya web siteleri üzerinden sipariş alarak strafor kutularda taze balığı tüketiciye yollayabilmektedir. Bu, geleneksel pazarlama kanallarındaki \"fiyat makasını\" üretici lehine kapatan modern bir yöntemdir.]"
+    },
+    {
+        q: "Gerçekte çevreye zarar veren veya sürdürülemez üretim yapan bir su ürünleri firmasının, ambalajlarında yanıltıcı yeşil logolar ve \"doğa dostu\" ifadeleri kullanarak tüketiciyi kandırmasına pazarlamada ne denir?",
+        o: [
+            "Sürdürülebilir Raporlama",
+            "Yeşil Pazarlama (Green Marketing)",
+            "Mavi/Yeşil Yıkama (Blue-washing / Green-washing)",
+            "Eko-etiketleme"
+        ],
+        c: 2,
+        e: "Açıklama: Greenwashing, tüketicinin artan çevre bilincini sömürmek için yapılan sahtekarlıktır. Sırf ambalajı yeşil diye veya doğa resmi var diye ürün sürdürülebilir olmaz. Gerçek sürdürülebilirlik, bağımsız ve uluslararası denetim kurumlarının (ASC, MSC gibi) sertifikalarıyla kanıtlanır."
+    },
+    {
+        q: "Birleşmiş Milletler'e bağlı olan ve dünyadaki su ürünleri üretimi, tüketimi, ticareti ve istihdamı hakkında en yetkili istatistiksel raporları (SOFIA) yayınlayan uluslararası kuruluş hangisidir?",
+        o: [
+            "FAO (Gıda ve Tarım Örgütü)",
+            "IMF (Uluslararası Para Fonu)",
+            "WHO (Dünya Sağlık Örgütü)",
+            "UNICEF"
+        ],
+        c: 0,
+        e: "Açıklama: FAO (Food and Agriculture Organization), küresel su ürünleri sektörünün anayasası niteliğindeki politikaları, sürdürülebilirlik ilkelerini (Code of Conduct for Responsible Fisheries) ve üretim verilerini derleyen, sektörün en önemli uluslararası referans noktasıdır."
+    },
+    {
+        q: "İşleme endüstrisinde taze balık yerine konserve, tuzlama veya dondurulmuş ürün formatlarına yatırım yapmanın \"Stok Yönetimi\" ve maliyet açısından en büyük avantajı nedir?",
+        o: [
+            "Balık boyutunun büyümesi",
+            "Ürünün raf ömrünü (Shelf Life) yıllara kadar uzatarak, anlık arz/talep dengesizliklerinden kaynaklanan bozulma firelerini ve fiyat düşüşlerini engellemesi",
+            "Balıkların renklerinin parlak kalması",
+            "Fabrikanın yer kaplamaması"
+        ],
+        c: 1,
+        e: "Açıklama: Taze balığın satılabilmesi için sadece 1-2 haftası vardır. Satılamazsa çöpe gider (fire maliyeti). Ancak ürün konserveye dönüştürüldüğünde raf ömrü 2-4 yıla çıkar. Bu durum üreticiye ürünü bekletme ve fiyatın en yüksek olduğu zamanda satma (zaman faydası) gücü verir."
+    },
+    {
+        q: "İşleme fabrikalarında gıda güvenliğini sağlamak amacıyla uygulanan ve üretim bandındaki riskli aşamaları belirleyip önlem almayı gerektiren HACCP (Tehlike Analizi ve Kritik Kontrol Noktaları) sisteminin ekonomik amacı nedir?",
+        o: [
+            "Ürünün tüketiciye ulaştıktan sonra hatalı (bozuk, kılçıklı vb.) çıkması ihtimalini kaynağında önleyerek, devasa ürün toplatma maliyetlerinden ve marka itibarının sıfırlanmasından (yasal tazminatlardan) korunmak",
+            "Fabrikayı kapatmak",
+            "Sadece işçi maaşlarını hesaplamak",
+            "Vergi kaçırmak"
+        ],
+        c: 0,
+        e: "Açıklama: Kalite kontrol son aşamada değil, süreç içinde yapılmalıdır. Bir kılçık veya metal parçası yüzünden yüz binlerce dolarlık ihracat partisinin sınır kapısından geri çevrilmesi veya tüketicinin dava açması bir firmayı batırabilir. HACCP bu finansal riski minimize eder."
+    },
+    {
+        q: "Midye gibi çift kabukluların ihracatında zaman zaman yaşanan ve toksin üreten alglerin neden olduğu \"karantina/hasat yasağı\" dönemleri firmalar için nasıl bir risk oluşturur?",
+        o: [
+            "Personelin tatil yapmasını sağlar",
+            "Midyelerin daha çok büyümesini sağlar",
+            "Sadece ulaşım maliyetini artırır",
+            "Üretimin ve siparişlerin aniden durmasına, alıcılara karşı sözleşme yükümlülüklerinin yerine getirilememesine ve nakit akışının (Cash Flow) kesilmesine neden olan biyolojik bir fors majör (mücbir sebep) riskidir"
+        ],
+        c: 3,
+        e: "Açıklama: Deniz suyunda toksin seviyesi yükseldiğinde devlet yetkilileri halk sağlığı için bölgeyi hasada tamamen kapatır. Bu durum ne zaman biteceği belli olmayan bir belirsizliktir. Firmanın sabit giderleri (işçi, tesis) devam ederken kasaya para girmemesi ciddi bir finansal kriz yaratır."
+    },
+    {
+        q: "Türkiye'de iç sularda (baraj veya göllerde) alabalık yetiştiriciliği yapmak isteyen girişimcilerin devlete ödediği yıllık \"Su Yüzeyi/Alan Kira Bedelleri\" işletmenin maliyet tablosunda hangi kategoriye girer?",
+        o: [
+            "Değişken maliyet",
+            "Pazarlama Gideri",
+            "Sabit Maliyet (Genel Üretim Gideri)",
+            "Amortisman"
+        ],
+        c: 2,
+        e: "Açıklama: Tesisin kurulu olduğu göl yüzey alanı için her yıl devlete veya yerel idareye ödenen kira bedelleri, tesiste balık olsa da olmasa da, üretim miktarı artsa da azalsa da ödenmek zorunda olunan, üretime bağlı olarak değişmeyen Sabit Maliyetlerdir."
+    },
+    {
+        q: "Enflasyonist bir ekonomide, tüketicilerin alım gücünün düşmesiyle birlikte pahalı taze balık alımını azaltıp, daha uzun süre dayanan ve görece ucuz olan dondurulmuş balıklara veya konserve ton balığına yönelmesi tüketici davranışlarında neyi ifade eder?",
+        o: [
+            "Gıda güvenliği korkusunu",
+            "Balığa alerjisi olmasını",
+            "İhracat patlamasını",
+            "Gelir Etkisi ve İkame Etkisinin birleşimiyle tüketicinin zorunlu ihtiyaçlarını daha rasyonel (ucuz alternatiflerle) karşılama eğilimini"
+        ],
+        c: 3,
+        e: "Açıklama: Tüketici geliri reel olarak azaldığında, bütçesini korumak için pahalı (lüks) kabul edilen taze porsiyonluk deniz balıklarından vazgeçer. Bunun yerine protein ihtiyacını kampanyalı donuk ürünler, konserve ürünler veya daha ucuz kültür balıkları (alabalık gibi) ile ikame eder."
+    },
+    {
+        q: "Avrupa Birliği'nin deniz ve kıyı kaynaklarının sürdürülebilir kullanımına dayalı ekonomik kalkınma stratejisine verilen genel ad nedir?",
+        o: [
+            "Mavi Büyüme (Blue Growth)",
+            "Kapalı Ekonomi",
+            "Yeşil Devrim",
+            "Endüstri 4.0"
+        ],
+        c: 0,
+        e: "Açıklama: Mavi Büyüme stratejisi; su ürünleri yetiştiriciliği, kıyı turizmi, deniz biyoteknolojisi ve okyanus enerjisi gibi sektörleri destekleyerek, deniz ekosistemlerine zarar vermeden istihdam ve ekonomik değer yaratmayı hedefler."
+    },
+    {
+        q: "Bir su ürünleri işletmesinin yeni bir yatırıma girmeden önce kendi \"Güçlü/Zayıf\" yönlerini ve piyasadaki \"Fırsat/Tehditleri\" analiz ettiği stratejik planlama aracına ne denir?",
+        o: [
+            "PESTLE Analizi",
+            "SWOT Analizi",
+            "Başabaş Noktası Analizi",
+            "Pareto Analizi"
+        ],
+        c: 1,
+        e: "Açıklama: SWOT (Strengths, Weaknesses, Opportunities, Threats) analizi, bir firmanın (örn: teknik altyapısının güçlü olması) ile dış çevrenin (örn: yem fiyatlarının artması tehdidi) eşleştirilerek en uygun büyüme veya korunma stratejisinin belirlenmesini sağlar."
+    },
+    {
+        q: "Küresel gıda sisteminde, su ürünleri yetiştiriciliğinin (özellikle çift kabuklu ve otçul balıkların) sığır ve koyun gibi kara hayvancılığına kıyasla en büyük makroekonomik ve çevresel avantajı nedir?",
+        o: [
+            "Devletten daha çok vergi iadesi alması",
+            "Daha pahalıya satılması",
+            "Sadece denizde yapılması",
+            "Yem dönüşüm oranlarının (FCR) çok daha iyi olması, daha az tatlı su tüketmesi ve Karbon Ayak İzinin çok daha düşük olması"
+        ],
+        c: 3,
+        e: "Açıklama: Balıklar soğukkanlı canlılar oldukları için vücut ısılarını korumak için enerji harcamazlar ve suyun kaldırma kuvveti sayesinde yerçekimine karşı iskelet enerjisi tüketmezler. Bu yüzden 1 kg et üretmek için sığıra göre çok daha az yeme, suya ve alana ihtiyaç duyarlar."
+    },
+    {
+        q: "Türkiye'de su ürünleri yetiştiricilerini fırtına, hastalık, alg patlaması ve sel gibi doğal veya biyolojik afetlerin yaratacağı finansal yıkıma karşı koruyan devlet destekli sigorta sistemi hangisidir?",
+        o: [
+            "TARSİM (Tarım Sigortaları Havuzu)",
+            "DASK",
+            "KGF",
+            "SGK"
+        ],
+        c: 0,
+        e: "Açıklama: TARSİM, poliçe priminin %50'sinin devlet tarafından karşılandığı bir havuz sistemidir. Kafesleri parçalanan veya balıkları hastalıktan ölen bir üretici, TARSİM sayesinde zararının büyük bir kısmını tazmin ederek iflas etmekten kurtulur ve üretime devam edebilir."
+    },
+    {
+        q: "Balık yemi üretiminde kullanılan ve tamamı ithal edilen balık unu yerine, yerli tarım ürünlerinin (Örn: Karadeniz'de üretilen fındık küspesi veya soya) kullanılmasına yönelik Ar-Ge çalışmaları makroekonomide hangi politikaya hizmet eder?",
+        o: [
+            "Devalüasyon",
+            "İhracatı kısıtlama",
+            "Serbest ticaret",
+            "İthal İkamesi (Import Substitution) - Dışa bağımlılığı ve cari açığı azaltma"
+        ],
+        c: 3,
+        e: "Açıklama: İthal ikamesi, dışarıdan dövizle alınan bir girdinin yerine yurt içinde üretilen yerli bir alternatifin konulmasıdır. Yem hammaddelerinde yerli kaynakların kullanılması, sektörün döviz kuru şoklarına karşı direncini artırır ve milli ekonomiyi güçlendirir."
+    },
+    {
+        q: "Geleneksel balıkçılık yönetiminde sadece hedef türün (Örn: Hamsi) biyolojisine odaklanmak yerine; o türün avcılarını, avlarını, iklim şartlarını ve insan (balıkçı/ekonomi) faktörünü bir bütün olarak değerlendiren modern yönetim yaklaşımı nedir?",
+        o: [
+            "Monokültür Yönetimi",
+            "Bireysel Kota Sistemi",
+            "Ekosistem Temelli Balıkçılık Yönetimi (EAFM)",
+            "Kapalı Sezon Uygulaması"
+        ],
+        c: 2,
+        e: "Açıklama: Ekosistem yaklaşımı, denizi karmaşık bir ağ olarak görür. Hamsiyi çok avlarsanız, hamsiyle beslenen palamut ve kalkan gibi daha değerli balıkların da aç kalıp azalacağını öngörür. Ekonomik kararları tüm bu ekolojik dengeyi gözeterek alır."
+    },
+    {
+        q: "Türkiye iç pazarında tüketici davranışları incelendiğinde, kültür (çiftlik) balıklarına karşı \"antibiyotikli, hormonlu veya lezzetsiz\" şeklindeki yaygın ve yanlış ön yargı pazarlamada hangi sorunu yaratmaktadır?",
+        o: [
+            "İhracatın tamamen durmasına",
+            "Sadece konserve balık tüketilmesine",
+            "Üretim maliyetlerinin düşmesini",
+            "Doğadan avlanan balıklara göre talep esnekliğinin yüksek olmasına ve fiyatların belirli bir seviyenin üzerine çıkamamasına (Algı Kaynaklı Fiyat Baskısı)"
+        ],
+        c: 3,
+        e: "Açıklama: Tüketicilerin bilgi eksikliği (asimetrik bilgi) ve medyadaki asılsız haberler nedeniyle oluşan bu negatif algı, çiftlik balıklarının taze av balıkları kadar yüksek fiyata satılmasını zorlaştırır. Firmalar bu algıyı kırmak için şeffaflık (izlenebilirlik) ve halkla ilişkiler (PR) kampanyalarına milyonlar harcamaktadır."
+    },
+    {
+        q: "Balık işleme fabrikalarında arta kalan iç organlar ve kafaların, asit veya enzimlerle parçalanarak sıvı hale getirilmesi ve hayvan yemi (tavuk/domuz) rasyonlarında kullanılmasıyla elde edilen ürün nedir?",
+        o: [
+            "Soya sosu",
+            "Balık Silajı (Fish Silage)",
+            "Balık yağı",
+            "Balık tutkalı"
+        ],
+        c: 1,
+        e: "Açıklama: [Balık silajı, işleme atıklarını bertaraf etmenin en ucuz ve çevreci yollarından biridir. Yüksek proteinli bu sıvı, döngüsel ekonominin temel kurallarından olan \"atığı kaynağa dönüştürme\" prensibinin tam karşılığıdır ve işletmeye ek gelir sağlar.]"
+    },
+    {
+        q: "Su ürünleri sektöründe girişimcilerin, banka kredi faiz oranlarının çok yüksek olduğu dönemlerde tesislerini büyütmekten veya yeni tekne almaktan vazgeçmelerinin temel makroekonomik sebebi nedir?",
+        o: [
+            "Paranın maliyetinin (Faiz/Borçlanma Gideri) artması ve yatırımın Getiri Oranının (ROI) faiz oranının altında kalarak projeyi kârsız hale getirmesi",
+            "Denizde balık kalmaması",
+            "Devletin avcılığı yasaklaması",
+            "İşçilerin çalışmak istememesi"
+        ],
+        c: 0,
+        e: "Açıklama: Faiz, sermayenin kirasıdır. Yatırım yapılabilmesi için işletmenin o yatırımdan beklediği kâr oranının, bankaya ödeyeceği kredi faiz oranından daha yüksek olması gerekir. Faizler yükseldiğinde sermaye yoğun (kafes, tekne, RAS) yatırımlar anında durur."
+    },
+    {
+        q: "Bir yatırım projesinin (Örn: yeni bir kuluçkahane inşası) ekonomik ömrü boyunca sağlayacağı tüm nakit girişleri ile nakit çıkışlarının bugünkü değerini karşılaştıran ve yatırımın yapılabilirliğini ölçen finansal analiz yöntemi hangisidir?",
+        o: [
+            "Enflasyon Analizi",
+            "Net Bugünkü Değer (NBD / NPV - Net Present Value) Yöntemi",
+            "Fiyat/Kazanç Oranı",
+            "Cari Oran"
+        ],
+        c: 1,
+        e: "Açıklama: Paranın zaman değeri vardır; bugünkü 100 TL, seneye alınacak 100 TL'den daha değerlidir. NBD yöntemi, projenin gelecekte kazandıracağı paraları enflasyon ve faiz oranlarıyla bugüne indirger. Sonuç sıfırdan büyükse (pozitifse) proje ekonomik olarak kabul edilir."
+    },
+    {
+        q: "Özellikle Norveç ve Şili gibi ülkelerde devasa çok uluslu şirketlerin su ürünleri piyasasına hakim olması, yerel küçük üreticilerin yok olmasına ve sektörde hangi piyasa yapısının oluşmasına neden olmaktadır?",
+        o: [
+            "Monopson",
+            "Sosyalist piyasa",
+            "Tam Rekabet",
+            "Oligopol (Az sayıda büyük satıcının piyasaya hakim olması)"
+        ],
+        c: 3,
+        e: "Açıklama: Ölçek ekonomisinin doğal bir sonucu olarak büyükler küçükleri yutar (Birleşme ve Satın Almalar - M&A). Sonunda piyasada fiyatları, arz miktarını ve teknolojiyi belirleyen sadece 3-4 dev holding (Oligopol) kalır. Küresel somon pazarı bunun en net örneğidir."
+    },
+    {
+        q: "Su ürünleri ve balıkçılık ekonomisinin ulaşmaya çalıştığı \"Nihai Hedef\" (Ultimate Goal) en kapsamlı şekilde nasıl tanımlanır?",
+        o: [
+            "Balık ithalatını yasaklamak",
+            "Sucul ekosistemlerin biyolojik yenilenme kapasitesini (doğal sermayeyi) korurken; üreticinin kârını maksimize etmek, halka sağlıklı protein sağlamak ve gelecek nesillerin ihtiyaçlarını tehlikeye atmadan sektörü sürdürülebilir kılmak",
+            "Doğadaki tüm balıkları avlayıp satmak",
+            "Sadece büyük şirketlerin para kazanmasını sağlamak"
+        ],
+        c: 1,
+        e: "Açıklama: Balıkçılık ekonomisi sadece parayla değil, biyo-ekonomiyle ilgilenir. Doğal kaynakların (Müştereklerin) sınırlı olduğu bilinciyle; ekonomik verimlilik, sosyal adalet (istihdam/gıda güvenliği) ve çevresel sürdürülebilirlik (Ekoloji) arasındaki o hassas dengeyi kurmayı amaçlar."
+    }
+];
+
+  document.getElementById("mainTitle").textContent = `${CURRENT_SUBJECT} Deneme Sınavı`;
+  document.getElementById("headerSubject").textContent = CURRENT_SUBJECT;
+  document.getElementById("sourceTag").textContent = SOURCE_TEXT;
+  document.title = CURRENT_SUBJECT;
+
+  if (performance.navigation.type === performance.navigation.TYPE_RELOAD || !sessionStorage.getItem("session_active")) {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith(storagePrefix())) localStorage.removeItem(k);
+    });
+    sessionStorage.setItem("session_active", "true");
+  }
+
+  let currentQuestions = [];
+  let currentIndex = 0;
+  let solvedIndex = -1;
+  let userAnswers = {};
+  let currentSetKey = "";
+  let stats = { correct: 0, wrong: 0 };
+
+  function storagePrefix() {
+    return "exam_" + CURRENT_SUBJECT.replace(/\s+/g, "_") + "_";
+  }
+
+  function setStateKey(index) {
+    return storagePrefix() + "state_set_" + index;
+  }
+
+  function normalizeQuestion(q, originalIndex) {
+    return {
+      id: q.id || ("q_" + originalIndex + "_" + Math.random().toString(36).slice(2, 8)),
+      originalNo: originalIndex + 1,
+      q: q.q,
+      o: [...q.o],
+      c: q.c,
+      e: q.e || "",
+      isRetry: q.isRetry || false,
+      retryFrom: q.retryFrom || null,
+      retryCount: q.retryCount || 0,
+      answeredCorrectly: q.answeredCorrectly || false
+    };
+  }
+
+  function initMenu() {
+    const menuGrid = document.getElementById("menuGrid");
+    menuGrid.innerHTML = "";
+
+    const totalSets = Math.ceil(questions.length / QUESTIONS_PER_SET);
+
+    let setsPerButton = 1;
+    let buttonCount = totalSets;
+
+    if (buttonCount > 10) {
+      setsPerButton = 2;
+      buttonCount = Math.ceil(totalSets / setsPerButton);
+    }
+
+    buttonCount = Math.min(buttonCount, 10);
+
+    for (let i = 0; i < buttonCount; i++) {
+      const startSetNo = i * setsPerButton + 1;
+      const endSetNo = Math.min(startSetNo + setsPerButton - 1, totalSets);
+
+      const start = (startSetNo - 1) * QUESTIONS_PER_SET;
+      const end = Math.min(endSetNo * QUESTIONS_PER_SET, questions.length);
+
+      if (start >= questions.length) continue;
+
+      const key = setStateKey(i);
+
+      const saved = JSON.parse(localStorage.getItem(key) || "null");
+      const solved = saved ? Object.keys(saved.userAnswers || {}).length : 0;
+      const correct = saved?.stats?.correct || 0;
+      const wrong = saved?.stats?.wrong || 0;
+
+      const totalCurrent = saved?.currentQuestions?.length || (end - start);
+      const isCompleted = saved ? (solved >= totalCurrent && totalCurrent > 0) : false;
+
+      const label = startSetNo === endSetNo
+        ? `Deneme-${startSetNo}`
+        : `Deneme-${startSetNo}-${endSetNo}`;
+
+      const btn = document.createElement("button");
+      btn.className = `menu-btn ${isCompleted ? "locked" : ""}`;
+      btn.innerHTML = `
+        <strong>${label}</strong><br>
+        <small>${end - start} Soru | Çözülen ${solved} (Doğru ${correct} Yanlış ${wrong})</small>
+      `;
+
+      if (!isCompleted) {
+        btn.onclick = () => startSet(i, key, start, end);
+      }
+
+      menuGrid.appendChild(btn);
+    }
+  }
+
+  function startSet(idx, key, start, end) {
+    currentSetKey = key;
+
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+
+    if (saved) {
+      currentQuestions = saved.currentQuestions;
+      currentIndex = saved.currentIndex;
+      solvedIndex = saved.solvedIndex;
+      userAnswers = saved.userAnswers || {};
+      stats = saved.stats || { correct: 0, wrong: 0 };
+    } else {
+      currentQuestions = questions.slice(start, end).map((q, i) => normalizeQuestion(q, start + i));
+      currentIndex = 0;
+      solvedIndex = -1;
+      userAnswers = {};
+      stats = { correct: 0, wrong: 0 };
+      saveState();
+    }
+
+    document.getElementById("menuContainer").style.display = "none";
+    document.getElementById("quizContainer").style.display = "block";
+    document.getElementById("headerSubject").textContent = CURRENT_SUBJECT;
+    loadQuestion();
+    window.scrollTo(0, 0);
+  }
+
+  function getQuestionTitle(q) {
+    return `Soru-${q.originalNo}: ${q.q}`;
+  }
+
+  function loadQuestion() {
+    const q = currentQuestions[currentIndex];
+    const progress = ((currentIndex + 1) / currentQuestions.length) * 100;
+
+    document.getElementById("progressBar").style.width = progress + "%";
+    document.getElementById("footerLeft").textContent = `Kalan: ${Math.max(currentQuestions.length - (currentIndex + 1), 0)}`;
+    document.getElementById("footerRight").textContent = `${currentIndex + 1} / ${currentQuestions.length}`;
+    document.getElementById("questionText").textContent = getQuestionTitle(q);
+
+    const retryBadge = document.getElementById("retryBadge");
+    retryBadge.style.display = q.isRetry ? "block" : "none";
+
+    const optArea = document.getElementById("optionsArea");
+    const expArea = document.getElementById("explanationArea");
+    optArea.innerHTML = "";
+    expArea.style.display = "none";
+    expArea.innerHTML = "";
+
+    const letters = ["A", "B", "C", "D"];
+
+    q.o.forEach((opt, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.innerHTML = `<strong>${letters[idx]})</strong> ${opt}`;
+
+      if (currentIndex <= solvedIndex) {
+        btn.disabled = true;
+        const userChoice = userAnswers[currentIndex];
+
+        if (idx === userChoice) {
+          if (userChoice === q.c) {
+            btn.classList.add("correct");
+            btn.innerHTML += ` <span class="tick show">✔</span>`;
+          } else {
+            btn.classList.add("wrong");
+          }
+        }
+
+        if (userChoice === q.c) {
+          expArea.innerHTML = `<strong>Açıklama:</strong> ${q.e}`;
+          expArea.style.display = "block";
+        } else if (q.isRetry) {
+          if (idx === q.c) {
+            btn.classList.add("correct");
+            btn.innerHTML += ` <span class="tick show">✔</span>`;
+          }
+          expArea.innerHTML = `<strong>Açıklama:</strong> ${q.e}`;
+          expArea.style.display = "block";
+        }
+      } else {
+        btn.onclick = () => selectOption(idx);
+      }
+
+      optArea.appendChild(btn);
+    });
+
+    document.getElementById("prevBtn").style.visibility = currentIndex > 0 ? "visible" : "hidden";
+    document.getElementById("nextBtn").style.visibility = currentIndex <= solvedIndex ? "visible" : "hidden";
+  }
+
+  function selectOption(idx) {
+    const q = currentQuestions[currentIndex];
+    const isCorrect = idx === q.c;
+
+    userAnswers[currentIndex] = idx;
+    solvedIndex = Math.max(solvedIndex, currentIndex);
+
+    if (isCorrect) {
+      stats.correct++;
+      q.answeredCorrectly = true;
+    } else {
+      stats.wrong++;
+
+      if (!q.isRetry) {
+        const retryQuestion = {
+          ...q,
+          isRetry: true,
+          retryFrom: q.originalNo,
+          retryCount: 1
+        };
+
+        const insertIndex = Math.min(currentIndex + 6, currentQuestions.length);
+        currentQuestions.splice(insertIndex, 0, retryQuestion);
+      }
+    }
+
+    saveState();
+    loadQuestion();
+  }
+
+  function saveState() {
+    localStorage.setItem(currentSetKey, JSON.stringify({
+      currentQuestions,
+      currentIndex,
+      solvedIndex,
+      userAnswers,
+      stats
+    }));
+  }
+
+  function goForward() {
+    if (currentIndex < solvedIndex) {
+      currentIndex++;
+    } else if (currentIndex < currentQuestions.length - 1) {
+      currentIndex++;
+    } else {
+      return showMenu();
+    }
+
+    saveState();
+    loadQuestion();
+    window.scrollTo(0, 0);
+  }
+
+  function goBack() {
+    if (currentIndex > 0) {
+      currentIndex--;
+      saveState();
+      loadQuestion();
+      window.scrollTo(0, 0);
+    }
+  }
+
+  function showMenu() {
+    document.getElementById("quizContainer").style.display = "none";
+    document.getElementById("menuContainer").style.display = "block";
+    initMenu();
+    window.scrollTo(0, 0);
+  }
+
+  function clearAllStatistics() {
+    if (confirm("Tüm veriler sıfırlansın mı?")) {
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith(storagePrefix())) localStorage.removeItem(k);
+      });
+      initMenu();
+    }
+  }
+
+  function resetCurrentSet() {
+    if (confirm("Bu deneme sıfırlansın mı?")) {
+      localStorage.removeItem(currentSetKey);
+      showMenu();
+    }
+  }
+
+  initMenu();
+</script>
+</body>
+</html>
